@@ -1,0 +1,134 @@
+# Contrato de la API REST
+
+Borrador del contrato. La implementación real generará la documentación
+Swagger/OpenAPI automáticamente vía FastAPI. Prefijo base: `/api/v1`.
+
+Todos los endpoints salvo autenticación requieren cabecera
+`Authorization: Bearer <access_token>`.
+
+---
+
+## Auth
+
+| Método | Ruta                | Descripción                         | Auth |
+| ------ | ------------------- | ----------------------------------- | ---- |
+| POST   | `/auth/register`    | Registrar usuario                   | No   |
+| POST   | `/auth/login`       | Login, devuelve access + refresh    | No   |
+| POST   | `/auth/refresh`     | Renovar access token                | No*  |
+| POST   | `/auth/logout`      | Invalidar refresh token             | Sí   |
+
+\* requiere refresh token válido.
+
+**POST /auth/register**
+```json
+// request
+{ "email": "user@mail.com", "password": "••••••••" }
+// response 201
+{ "id": "uuid", "email": "user@mail.com" }
+```
+
+**POST /auth/login**
+```json
+// response 200
+{ "access_token": "jwt", "refresh_token": "jwt", "token_type": "bearer" }
+```
+
+---
+
+## Transactions
+
+| Método | Ruta                     | Descripción                          |
+| ------ | ------------------------ | ------------------------------------ |
+| GET    | `/transactions`          | Listar (ordenado, filtros opcionales)|
+| POST   | `/transactions`          | Crear movimiento manual              |
+| GET    | `/transactions/{id}`     | Detalle                              |
+| PATCH  | `/transactions/{id}`     | Editar                               |
+| DELETE | `/transactions/{id}`     | Eliminar                             |
+
+Query params de listado: `from`, `to`, `category_id`, `type`, `page`, `size`.
+
+**POST /transactions**
+```json
+{
+  "amount": "42.90",
+  "type": "expense",
+  "concept": "Mercadona",
+  "occurred_on": "2026-07-03",
+  "category_id": "uuid"   // opcional; si falta, se intenta clasificar
+}
+```
+
+---
+
+## Categories
+
+| Método | Ruta                  | Descripción                 |
+| ------ | --------------------- | --------------------------- |
+| GET    | `/categories`         | Listar (incluye por defecto)|
+| POST   | `/categories`         | Crear categoría propia      |
+| PATCH  | `/categories/{id}`    | Editar                      |
+| DELETE | `/categories/{id}`    | Eliminar (solo propias)     |
+
+---
+
+## Import
+
+| Método | Ruta                | Descripción                                   |
+| ------ | ------------------- | --------------------------------------------- |
+| POST   | `/import/preview`   | Subir CSV, devolver filas parseadas + clasif. |
+| POST   | `/import/confirm`   | Persistir los movimientos previsualizados     |
+
+**POST /import/preview** (multipart/form-data con el fichero)
+```json
+// response 200
+{
+  "rows": [
+    {
+      "amount": "42.90", "type": "expense",
+      "concept": "Mercadona", "occurred_on": "2026-07-03",
+      "suggested_category_id": "uuid", "confidence": 0.95, "source": "rule"
+    }
+  ],
+  "summary": { "total": 120, "classified": 98, "needs_review": 22 }
+}
+```
+
+---
+
+## Budget
+
+| Método | Ruta         | Descripción                        |
+| ------ | ------------ | ---------------------------------- |
+| GET    | `/budget`    | Obtener configuración 50-30-20     |
+| PUT    | `/budget`    | Actualizar ingreso y colchón       |
+
+---
+
+## Analytics
+
+| Método | Ruta                     | Descripción                              |
+| ------ | ------------------------ | ---------------------------------------- |
+| GET    | `/analytics/summary`     | Resumen del mes: ingresos, gastos, ahorro|
+| GET    | `/analytics/buckets`     | Consumo real vs. presupuesto por cubo    |
+| GET    | `/analytics/by-category` | Gasto agrupado por categoría             |
+| GET    | `/analytics/alerts`      | Alertas activas de presupuesto           |
+
+**GET /analytics/buckets**
+```json
+{
+  "month": "2026-07",
+  "income": "2000.00",
+  "buckets": [
+    { "bucket": "living",     "budget": "1000.00", "spent": "820.00", "pct": 82 },
+    { "bucket": "monthly",    "budget": "600.00",  "spent": "540.00", "pct": 90 },
+    { "bucket": "investment", "budget": "400.00",  "spent": "400.00", "pct": 100 }
+  ]
+}
+```
+
+## Convenciones
+
+- Importes como **string decimal** en JSON para evitar pérdida de precisión.
+- Fechas en ISO-8601 (`YYYY-MM-DD`).
+- Errores con formato consistente: `{ "detail": "mensaje" }` y código HTTP
+  adecuado (400, 401, 403, 404, 422).
