@@ -96,8 +96,8 @@ Numario/
 
 ## 5. Plan de trabajo por fases
 
-El proyecto se ejecuta en 7 fases secuenciales. **Estado actual: Fase 1
-completada; siguiente, Fase 2.**
+El proyecto se ejecuta en 7 fases secuenciales. **Estado actual: Fase 2
+completada; siguiente, Fase 3.**
 
 ### Fase 0 — Análisis y diseño ✅
 Personas, user stories con MoSCoW, requisitos, modelo ER, contrato de API y ADR
@@ -113,11 +113,15 @@ Infraestructura montada antes que las features:
 - Dependencias del backend gestionadas con **uv** (`pyproject.toml` + `uv.lock`).
 - **Hito:** `docker compose up` levanta todo y el CI está en verde.
 
-### Fase 2 — Autenticación y seguridad base (TDD)
-Registro/login con JWT aplicando TDD (test antes que endpoint). Hash de
-contraseñas (bcrypt/argon2), validación Pydantic, rate limiting en login,
-variables de entorno. E2E de login con Playwright.
-- **Hito:** registro + login funcionando, cubiertos por tests unitarios y E2E.
+### Fase 2 — Autenticación y seguridad base (TDD) ✅
+Registro/login con JWT aplicando TDD. Hash con **argon2id** (`pwdlib`),
+validación Pydantic, **rate limiting** en login (`slowapi`), secretos por
+entorno. **Nick de perfil obligatorio y único**; login por email **o** nick.
+**Política de contraseña robusta** (complejidad + bloqueo de comunes + no
+contener email/nick) validada en backend y frontend, con medidor de fuerza.
+Refresh tokens **persistidos, rotables y revocables**. E2E de login con
+Playwright.
+- **Hito:** registro + login funcionando, cubiertos por tests unitarios y E2E. ✅
 
 ### Fase 3 — Núcleo de movimientos y categorías
 Modelo `Transaction` con `Decimal` (nunca float), categorías semilla mapeadas a
@@ -202,14 +206,25 @@ Estas reglas deben respetarse siempre al escribir código:
 - **Tests**: no dejarlos para el final; acompañan a cada feature.
 - **Alcance**: toda funcionalidad debe ayudar a demostrar alguna de las seis
   áreas del temario; lo que no, va al final del backlog.
+- **📌 TAREA PERMANENTE — Documentos vivos.** Al cerrar cada fase (o al añadir
+  una funcionalidad relevante) **actualizar siempre**:
+  1. `docs/glosario-funcionalidades.md` — añadir qué se implementó y **por qué**
+     (bloque de la fase + vista transversal por áreas).
+  2. `docs/comandos.md` — si la fase introduce comandos nuevos (tests, scripts,
+     migraciones, servicios), reflejarlos en el runbook.
+  No cerrar una fase sin haber actualizado ambos documentos.
 
 ---
 
 ## 9. Documentación de referencia
 
+- `docs/glosario-funcionalidades.md` — **documento vivo**: qué se ha hecho en
+  cada fase y por qué (ver tarea permanente en §8)
+- `docs/comandos.md` — **runbook**: comandos para Docker, tests, migraciones, E2E
 - `docs/analysis/01-personas.md` — personas de usuario
 - `docs/analysis/02-user-stories.md` — user stories + priorización MoSCoW
 - `docs/analysis/03-requisitos.md` — requisitos funcionales y no funcionales
 - `docs/architecture/01-modelo-datos.md` — modelo entidad-relación
 - `docs/architecture/02-contrato-api.md` — contrato de la API REST
 - `docs/decisions/0001-stack-tecnologico.md` — ADR del stack
+- `docs/security/01-owasp-autenticacion.md` — controles de seguridad de auth
