@@ -26,6 +26,7 @@ def upgrade() -> None:
         sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=True),
         sa.Column("name", sa.String(length=80), nullable=False),
         sa.Column("bucket", sa.String(length=20), nullable=False),
+        sa.Column("emoji", sa.String(length=16), nullable=True),
         sa.Column("is_default", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column(
             "created_at",
@@ -48,9 +49,10 @@ def upgrade() -> None:
                 "user_id": None,
                 "name": name,
                 "bucket": bucket,
+                "emoji": emoji,
                 "is_default": True,
             }
-            for name, bucket in DEFAULT_CATEGORIES
+            for name, bucket, emoji in DEFAULT_CATEGORIES
         ],
     )
 

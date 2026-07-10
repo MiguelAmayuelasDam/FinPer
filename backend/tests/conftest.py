@@ -103,8 +103,8 @@ def seed_categories(db_session: Session) -> None:
     from app.models.category import Category
 
     db_session.add_all(
-        Category(user_id=None, name=name, bucket=bucket, is_default=True)
-        for name, bucket in DEFAULT_CATEGORIES
+        Category(user_id=None, name=name, bucket=bucket, emoji=emoji, is_default=True)
+        for name, bucket, emoji in DEFAULT_CATEGORIES
     )
     db_session.commit()
 

@@ -80,8 +80,9 @@ El listado va **ordenado de más reciente a más antiguo** (`occurred_on` desc).
 }
 ```
 Reglas: `amount` > 0 como **string decimal** (2 decimales; se cuantiza en el
-servidor). `type` ∈ {`income`, `expense`}. `category_id` debe ser global o del
-usuario (si no, `422`).
+servidor). `type` ∈ {`income`, `expense`, `transfer`} (`transfer` = **No
+computable**: traspaso, ni gasto ni ingreso). `category_id` debe ser global o
+del usuario (si no, `422`).
 
 **Respuesta 201 / 200** (incluye la categoría anidada y el origen)
 ```json
@@ -92,7 +93,7 @@ usuario (si no, `422`).
   "concept": "Mercadona",
   "occurred_on": "2026-07-03",
   "category_id": "uuid",
-  "category": { "id": "uuid", "name": "Alimentación", "bucket": "living", "is_default": true },
+  "category": { "id": "uuid", "name": "Supermercado", "bucket": "living", "emoji": "🛒", "is_default": true },
   "source": "manual",
   "created_at": "2026-07-03T10:00:00Z"
 }

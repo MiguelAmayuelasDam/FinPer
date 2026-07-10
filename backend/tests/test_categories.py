@@ -11,9 +11,16 @@ def test_list_includes_default_categories(
     response = client.get(CATEGORIES, headers=auth_headers)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert len(body) >= 18
+    assert len(body) >= 79
     assert all("bucket" in c and "name" in c for c in body)
-    assert any(c["name"] == "Alimentación" and c["bucket"] == "living" for c in body)
+    assert any(c["name"] == "Supermercado" and c["bucket"] == "living" for c in body)
+    # No computable → bucket transfer.
+    assert any(
+        c["name"] == "Traspasos y transferencias" and c["bucket"] == "transfer" for c in body
+    )
+    # Las categorías por defecto traen emoji.
+    supermercado = next(c for c in body if c["name"] == "Supermercado")
+    assert supermercado["emoji"] == "🛒"
     assert all(c["is_default"] for c in body)
 
 

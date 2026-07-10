@@ -19,13 +19,15 @@ export interface TokenPair {
   token_type: string
 }
 
-export type Bucket = "living" | "monthly" | "investment" | "income"
-export type TransactionType = "income" | "expense"
+export type Bucket = "living" | "monthly" | "investment" | "income" | "transfer"
+// income = ingreso · expense = gasto · transfer = no computable
+export type TransactionType = "income" | "expense" | "transfer"
 
 export interface Category {
   id: string
   name: string
   bucket: Bucket
+  emoji: string | null
   is_default: boolean
 }
 

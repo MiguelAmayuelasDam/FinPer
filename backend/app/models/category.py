@@ -26,6 +26,8 @@ class Category(Base):
     )
     name: Mapped[str] = mapped_column(String(80), nullable=False)
     bucket: Mapped[str] = mapped_column(String(20), nullable=False)
+    # Emoji para la UI (opcional en categorías propias del usuario).
+    emoji: Mapped[str | None] = mapped_column(String(16), nullable=True)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

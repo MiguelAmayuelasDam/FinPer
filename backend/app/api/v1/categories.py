@@ -34,7 +34,7 @@ def create_category(
 ):
     try:
         return category_service.create_category(
-            db, user, name=payload.name, bucket=payload.bucket
+            db, user, name=payload.name, bucket=payload.bucket, emoji=payload.emoji
         )
     except CategoryAlreadyExistsError as exc:
         raise HTTPException(
@@ -51,7 +51,7 @@ def update_category(
 ):
     try:
         return category_service.update_category(
-            db, user, category_id, name=payload.name, bucket=payload.bucket
+            db, user, category_id, name=payload.name, bucket=payload.bucket, emoji=payload.emoji
         )
     except CategoryNotFoundError as exc:
         raise HTTPException(

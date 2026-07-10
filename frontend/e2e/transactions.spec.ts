@@ -26,7 +26,7 @@ test("registro y alta de un movimiento", async ({ page }) => {
   // Ir a movimientos.
   await page.getByRole("link", { name: "Ver movimientos" }).click()
   await expect(page.getByRole("heading", { name: "Movimientos" })).toBeVisible()
-  await expect(page.getByText(/Aún no tienes movimientos/)).toBeVisible()
+  await expect(page.getByText(/No hay movimientos/)).toBeVisible()
 
   // Alta de un movimiento.
   await page.getByRole("button", { name: "Añadir movimiento" }).click()
@@ -34,7 +34,7 @@ test("registro y alta de un movimiento", async ({ page }) => {
   await page.getByLabel("Concepto").fill("Mercadona")
   await page.getByRole("button", { name: "Guardar movimiento" }).click()
 
-  // Aparece en el listado.
+  // Aparece en el listado con el importe formateado (es-ES).
   await expect(page.getByText("Mercadona")).toBeVisible()
-  await expect(page.getByText("−42.90 €")).toBeVisible()
+  await expect(page.getByText(/42,90\s*€/)).toBeVisible()
 })

@@ -64,6 +64,7 @@ export function TransactionForm({
           <SelectContent>
             <SelectItem value="expense">Gasto</SelectItem>
             <SelectItem value="income">Ingreso</SelectItem>
+            <SelectItem value="transfer">No computable</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -114,6 +115,7 @@ export function TransactionForm({
             <SelectItem value={NO_CATEGORY}>Sin categoría</SelectItem>
             {categories.map((c) => (
               <SelectItem key={c.id} value={c.id}>
+                {c.emoji ? `${c.emoji} ` : ""}
                 {c.name}
               </SelectItem>
             ))}

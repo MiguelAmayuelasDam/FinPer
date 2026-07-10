@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -71,17 +71,45 @@ afterEach(() => {
 beforeEach(() => localStorage.clear())
 
 describe("Transactions", () => {
-  it("muestra el histórico de movimientos", async () => {
-    installFetch([tx({ id: "t1", concept: "Mercadona", amount: "42.90" })])
+  it("muestra el histórico agrupado con el importe formateado", async () => {
+    installFetch([tx({ id: "t1", concept: "Mercadona", amount: "42.90", type: "expense" })])
     renderPage()
     expect(await screen.findByText("Mercadona")).toBeInTheDocument()
-    expect(screen.getByText("−42.90 €")).toBeInTheDocument()
+    expect(screen.getByText(/42,90\s*€/)).toBeInTheDocument()
+  })
+
+  it("filtra por concepto con el buscador", async () => {
+    installFetch([
+      tx({ id: "t1", concept: "Mercadona" }),
+      tx({ id: "t2", concept: "Farmacia" }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText("Mercadona")
+
+    await user.type(screen.getByLabelText("Buscar"), "farma")
+    expect(screen.getByText("Farmacia")).toBeInTheDocument()
+    expect(screen.queryByText("Mercadona")).not.toBeInTheDocument()
+  })
+
+  it("filtra por pestaña de tipo (Ingresos)", async () => {
+    installFetch([
+      tx({ id: "t1", concept: "Compra", type: "expense" }),
+      tx({ id: "t2", concept: "Nómina", type: "income" }),
+    ])
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText("Compra")
+
+    await user.click(screen.getByRole("button", { name: "Ingresos" }))
+    expect(screen.getByText("Nómina")).toBeInTheDocument()
+    expect(screen.queryByText("Compra")).not.toBeInTheDocument()
   })
 
   it("muestra un estado vacío sin movimientos", async () => {
     installFetch([])
     renderPage()
-    expect(await screen.findByText(/Aún no tienes movimientos/)).toBeInTheDocument()
+    expect(await screen.findByText(/No hay movimientos/)).toBeInTheDocument()
   })
 
   it("crea un movimiento desde el diálogo y lo muestra en la lista", async () => {
@@ -89,7 +117,7 @@ describe("Transactions", () => {
     const user = userEvent.setup()
     renderPage()
 
-    await screen.findByText(/Aún no tienes movimientos/)
+    await screen.findByText(/No hay movimientos/)
     await user.click(screen.getByRole("button", { name: "Añadir movimiento" }))
 
     await user.type(await screen.findByLabelText("Importe (€)"), "15.50")
@@ -106,14 +134,14 @@ describe("Transactions", () => {
     expect(Number(body.amount)).toBe(15.5)
   })
 
-  it("borra un movimiento tras confirmar", async () => {
+  it("borra un movimiento desde el diálogo de edición", async () => {
     installFetch([tx({ id: "t1", concept: "Gimnasio" })])
     vi.spyOn(window, "confirm").mockReturnValue(true)
     const user = userEvent.setup()
     renderPage()
 
-    const row = (await screen.findByText("Gimnasio")).closest("tr")!
-    await user.click(within(row).getByRole("button", { name: "Borrar" }))
+    await user.click(await screen.findByText("Gimnasio"))
+    await user.click(await screen.findByRole("button", { name: "Borrar movimiento" }))
 
     await waitFor(() => expect(screen.queryByText("Gimnasio")).not.toBeInTheDocument())
   })

@@ -31,14 +31,18 @@ def list_categories(db: Session, user: User) -> list[Category]:
     return list(db.scalars(stmt).all())
 
 
-def create_category(db: Session, user: User, *, name: str, bucket: str) -> Category:
+def create_category(
+    db: Session, user: User, *, name: str, bucket: str, emoji: str | None = None
+) -> Category:
     name = name.strip()
     exists = db.scalar(
         select(Category).where(Category.user_id == user.id, Category.name == name)
     )
     if exists is not None:
         raise CategoryAlreadyExistsError
-    category = Category(user_id=user.id, name=name, bucket=bucket, is_default=False)
+    category = Category(
+        user_id=user.id, name=name, bucket=bucket, emoji=emoji, is_default=False
+    )
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -56,7 +60,13 @@ def _get_owned(db: Session, user: User, category_id: uuid.UUID) -> Category:
 
 
 def update_category(
-    db: Session, user: User, category_id: uuid.UUID, *, name: str | None, bucket: str | None
+    db: Session,
+    user: User,
+    category_id: uuid.UUID,
+    *,
+    name: str | None,
+    bucket: str | None,
+    emoji: str | None = None,
 ) -> Category:
     category = _get_owned(db, user, category_id)
     if name is not None:
@@ -73,6 +83,8 @@ def update_category(
         category.name = new_name
     if bucket is not None:
         category.bucket = bucket
+    if emoji is not None:
+        category.emoji = emoji
     db.commit()
     db.refresh(category)
     return category

@@ -171,14 +171,17 @@ US-10 filtros, Should). Base para la importación CSV (Fase 4) y el dashboard
 **Qué se implementó**
 
 Funcionalidad
-- **Categorías** mapeadas a los cubos 50-30-20 (`living`/`monthly`/
-  `investment`/`income`): 18 **semilla globales** por defecto + categorías
-  propias del usuario (crear/editar/borrar las suyas).
-- **Movimientos (CRUD completo)**: alta manual (entrada/salida), listado
-  **ordenado de más reciente a más antiguo**, edición y borrado.
-- **Filtros** de listado por tipo, categoría y rango de fechas.
-- Asignación de categoría a cada movimiento (opcional; puede quedar sin
-  clasificar).
+- **Categorías** con **emoji** y mapeadas a los cubos 50-30-20
+  (`living`/`monthly`/`investment`/`income`) más `transfer` (no computable):
+  **79 semilla globales** por defecto + categorías propias del usuario
+  (crear/editar/borrar las suyas).
+- **Movimientos (CRUD completo)**: alta manual, listado **ordenado de más
+  reciente a más antiguo** y **agrupado por fecha**, edición y borrado.
+- Tres tipos de movimiento: **Gasto**, **Ingreso** y **No computable**
+  (`transfer`: traspaso entre cuentas, ni gasto ni ingreso).
+- **Filtros** por fecha (inicio→fin) y categoría (servidor) + **buscador por
+  concepto** y **pestañas** por tipo (cliente).
+- Asignación de categoría a cada movimiento (opcional).
 
 Datos / reglas
 - Modelos **`Category`** y **`Transaction`**; `amount` es **`NUMERIC(12,2)` /
@@ -198,11 +201,14 @@ Seguridad / API
 - Validación estricta (importe > 0, `type` ∈ {income, expense}, `bucket` válido).
 
 Diseño / UX (frontend)
-- Pantalla **`/movimientos`** (protegida): tabla del histórico + botón **"Añadir
-  movimiento"** que abre un **diálogo** (shadcn Dialog) con el formulario;
-  editar (diálogo prerrelleno) y borrar (confirmación) por fila.
-- Componentes shadcn nuevos: **dialog**, **select**, **table**; formulario con
-  selector de categoría y validación en cliente (importe > 0, campos requeridos).
+- Pantalla **`/movimientos`** (protegida) estilo Fintonic: filtros de fecha y
+  categoría (con emoji), buscador, pestañas Todos/Gastos/Ingresos/No computable,
+  y **listado agrupado por fecha** con filas emoji + concepto (remarcado) +
+  categoría (atenuada) + importe (formateado en es-ES, con signo según el tipo).
+- Alta con botón **"Añadir movimiento"** (diálogo shadcn); **clic en una fila**
+  abre el diálogo de edición (con borrado dentro).
+- Componentes shadcn: **dialog**, **select**, **table**; validación en cliente
+  (importe > 0, campos requeridos).
 - Enlace desde el Dashboard a Movimientos.
 
 Testing

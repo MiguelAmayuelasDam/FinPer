@@ -13,7 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_valid
 
 from app.schemas.category import CategoryRead
 
-TransactionType = Literal["income", "expense"]
+# income = ingreso · expense = gasto · transfer = no computable (traspaso).
+TransactionType = Literal["income", "expense", "transfer"]
 
 _CENTS = Decimal("0.01")
 

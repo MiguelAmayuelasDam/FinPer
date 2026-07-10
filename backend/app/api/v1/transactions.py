@@ -33,7 +33,7 @@ def list_transactions(
     date_from: date | None = Query(default=None, alias="from"),
     date_to: date | None = Query(default=None, alias="to"),
     category_id: uuid.UUID | None = None,
-    type_: Literal["income", "expense"] | None = Query(default=None, alias="type"),
+    type_: Literal["income", "expense", "transfer"] | None = Query(default=None, alias="type"),
     page: int = Query(default=1, ge=1),
     size: int = Query(default=100, ge=1, le=500),
 ) -> list:

@@ -71,6 +71,15 @@ def test_list_filter_by_type(client: TestClient, auth_headers: dict[str, str]) -
     assert len(incomes) == 1 and incomes[0]["concept"] == "Ingreso"
 
 
+def test_transfer_type_no_computable(client: TestClient, auth_headers: dict[str, str]) -> None:
+    # "No computable" = transfer (ni gasto ni ingreso).
+    created = client.post(TX, headers=auth_headers, json=_new("Traspaso", type="transfer"))
+    assert created.status_code == 201, created.text
+    assert created.json()["type"] == "transfer"
+    transfers = client.get(f"{TX}?type=transfer", headers=auth_headers).json()
+    assert [t["concept"] for t in transfers] == ["Traspaso"]
+
+
 def test_list_filter_by_date_range(client: TestClient, auth_headers: dict[str, str]) -> None:
     client.post(TX, headers=auth_headers, json=_new("Junio", occurred_on="2026-06-10"))
     client.post(TX, headers=auth_headers, json=_new("Julio", occurred_on="2026-07-10"))
