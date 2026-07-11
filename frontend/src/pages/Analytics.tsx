@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -142,29 +143,43 @@ function BudgetDialog({
 
 export default function Analytics() {
   const today = new Date()
+  const currentYear = today.getFullYear()
   const [granularity, setGranularity] = useState<Granularity>("month")
-  const [sel, setSel] = useState({ year: today.getFullYear(), month: today.getMonth() + 1 })
+  const [sel, setSel] = useState({ year: currentYear, month: today.getMonth() + 1 })
+  const [navYear, setNavYear] = useState(currentYear) // año-ancla del navegador
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
   const [series, setSeries] = useState<SeriesPoint[]>([])
+  const [budget, setBudget] = useState<Budget | null>(null)
   const [budgetOpen, setBudgetOpen] = useState(false)
 
-  const load = useCallback(async () => {
-    const [ov, sr] = await Promise.all([
+  const loadOverview = useCallback(async () => {
+    const [ov, bg] = await Promise.all([
       api.analytics.overview(granularity, sel.year, sel.month),
-      api.analytics.series(granularity, granularity === "year" ? 6 : 12),
+      api.budget.get(),
     ])
     setOverview(ov)
-    setSeries(sr)
+    setBudget(bg)
   }, [granularity, sel])
 
+  const loadSeries = useCallback(async () => {
+    setSeries(await api.analytics.series(granularity, navYear, 6))
+  }, [granularity, navYear])
+
   useEffect(() => {
-    void load()
-  }, [load])
+    void loadOverview()
+  }, [loadOverview])
+
+  useEffect(() => {
+    void loadSeries()
+  }, [loadSeries])
 
   const switchGranularity = (g: Granularity) => {
     setGranularity(g)
-    setSel({ year: today.getFullYear(), month: today.getMonth() + 1 })
+    setSel({ year: currentYear, month: today.getMonth() + 1 })
+    setNavYear(currentYear)
   }
+
+  const step = granularity === "year" ? 6 : 1
 
   const maxVal = useMemo(
     () => Math.max(1, ...series.flatMap((p) => [Number(p.income), Number(p.expense)])),
@@ -178,8 +193,12 @@ export default function Analytics() {
     ? Math.max(1, ...overview.categories.map((c) => Number(c.spent)))
     : 1
 
+  const allocLabel = budget
+    ? `${budget.living_pct}-${budget.monthly_pct}-${budget.investment_pct}`
+    : "50-30-20"
+
   return (
-    <main className="mx-auto max-w-4xl p-4 sm:p-8">
+    <main className="mx-auto max-w-4xl p-4 sm:p-8" style={{ zoom: 1.1 }}>
       <header className="mb-4 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Análisis</h1>
         <div className="flex items-center gap-2">
@@ -211,36 +230,55 @@ export default function Analytics() {
         ))}
       </div>
 
-      {/* Navegador con mini-barras ingresos/gastos */}
-      <div className="mb-6 flex items-end gap-2 overflow-x-auto border-b pb-2" data-testid="navigator">
-        {series.map((p) => (
-          <button
-            key={`${p.year}-${p.month ?? "y"}`}
-            type="button"
-            onClick={() => setSel({ year: p.year, month: p.month ?? 1 })}
-            className="flex shrink-0 flex-col items-center gap-1"
-            title={`${p.label}: +${p.income} / −${p.expense}`}
-          >
-            <div className="flex h-12 items-end gap-0.5">
-              <div
-                className="w-2 rounded-t bg-green-500"
-                style={{ height: `${(Number(p.income) / maxVal) * 100}%` }}
-              />
-              <div
-                className="w-2 rounded-t bg-red-500"
-                style={{ height: `${(Number(p.expense) / maxVal) * 100}%` }}
-              />
-            </div>
-            <span
-              className={cn(
-                "text-xs",
-                isSelected(p) ? "font-bold text-foreground" : "text-muted-foreground",
-              )}
+      {/* Navegador con mini-barras ingresos/gastos (ocupa todo el ancho) */}
+      <div className="mb-6 flex items-stretch gap-1 border-b pb-2">
+        <button
+          type="button"
+          aria-label="Periodo anterior"
+          onClick={() => setNavYear(navYear - step)}
+          className="shrink-0 self-center rounded p-1 text-muted-foreground hover:bg-accent"
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+        <div className="flex flex-1 items-end gap-1" data-testid="navigator">
+          {series.map((p) => (
+            <button
+              key={`${p.year}-${p.month ?? "y"}`}
+              type="button"
+              onClick={() => setSel({ year: p.year, month: p.month ?? 1 })}
+              className="flex flex-1 flex-col items-center gap-1"
+              title={`${p.label}: +${p.income} / −${p.expense}`}
             >
-              {p.label}
-            </span>
-          </button>
-        ))}
+              <div className="flex h-12 items-end gap-0.5">
+                <div
+                  className="w-2 rounded-t bg-green-500"
+                  style={{ height: `${(Number(p.income) / maxVal) * 100}%` }}
+                />
+                <div
+                  className="w-2 rounded-t bg-red-500"
+                  style={{ height: `${(Number(p.expense) / maxVal) * 100}%` }}
+                />
+              </div>
+              <span
+                className={cn(
+                  "text-xs",
+                  isSelected(p) ? "font-bold text-foreground" : "text-muted-foreground",
+                )}
+              >
+                {p.label}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          aria-label="Periodo siguiente"
+          disabled={navYear >= currentYear}
+          onClick={() => setNavYear(navYear + step)}
+          className="shrink-0 self-center rounded p-1 text-muted-foreground hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
+        >
+          <ChevronRight className="size-5" />
+        </button>
       </div>
 
       {overview ? (
@@ -248,22 +286,30 @@ export default function Analytics() {
           {/* Ingresos / Gastos / Neto */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
-              <p className="text-4xl font-bold text-green-600" data-testid="income">
+              <p className="text-4xl font-bold" style={{ color: "#657280" }} data-testid="income">
                 {formatMoney(overview.summary.income)}
               </p>
-              <p className="text-sm text-muted-foreground">Ingresos</p>
+              <p className="text-sm font-medium" style={{ color: "#008030" }}>
+                Ingresos
+              </p>
             </div>
             <div>
-              <p className="text-4xl font-bold text-red-600" data-testid="expense">
+              <p className="text-4xl font-bold" style={{ color: "#657280" }} data-testid="expense">
                 {formatMoney(overview.summary.expense)}
               </p>
-              <p className="text-sm text-muted-foreground">
-                Gastos · unos{" "}
-                {formatMoney(
-                  Number(overview.summary.expense) /
-                    daysElapsed(overview.date_from, overview.date_to),
-                )}
-                /día
+              <p className="text-sm">
+                <span className="font-medium" style={{ color: "#FE5A5C" }}>
+                  Gastos
+                </span>
+                <span className="text-muted-foreground">
+                  {" "}
+                  · unos{" "}
+                  {formatMoney(
+                    Number(overview.summary.expense) /
+                      daysElapsed(overview.date_from, overview.date_to),
+                  )}
+                  /día
+                </span>
               </p>
             </div>
             <div>
@@ -277,7 +323,7 @@ export default function Analytics() {
           {/* Cubos 50-30-20 */}
           <div className="mb-6">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-semibold">Reparto 50-30-20</h2>
+              <h2 className="font-semibold">Reparto {allocLabel}</h2>
               <Button size="sm" variant="outline" onClick={() => setBudgetOpen(true)}>
                 Ajustar presupuesto
               </Button>
@@ -305,13 +351,13 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Desglose por categoría */}
+          {/* Desglose por categoría (máx. 9 visibles; el resto con scroll) */}
           <div>
             <h2 className="mb-2 font-semibold">Gastos por categoría</h2>
             {overview.categories.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin gastos en este periodo.</p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="max-h-[34rem] space-y-5 overflow-y-auto pr-2">
                 {overview.categories.map((c) => (
                   <li key={c.category_id ?? "none"} className="flex items-center gap-3">
                     <span className="w-6 text-lg">{c.emoji ?? "🏷️"}</span>
@@ -340,7 +386,11 @@ export default function Analytics() {
         <p className="py-8 text-center text-muted-foreground">Cargando…</p>
       )}
 
-      <BudgetDialog open={budgetOpen} onOpenChange={setBudgetOpen} onSaved={() => void load()} />
+      <BudgetDialog
+        open={budgetOpen}
+        onOpenChange={setBudgetOpen}
+        onSaved={() => void loadOverview()}
+      />
     </main>
   )
 }

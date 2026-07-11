@@ -75,9 +75,34 @@ def test_by_category_sorted_desc(
     assert categories[0]["name"] == "Restaurante"
 
 
-def test_series_returns_points(client: TestClient, auth_headers: dict[str, str]) -> None:
+def test_series_month_returns_12_of_year(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
     points = client.get(
-        "/api/v1/analytics/series?granularity=month&count=6", headers=auth_headers
+        "/api/v1/analytics/series?granularity=month&year=2025", headers=auth_headers
     ).json()
-    assert len(points) == 6
-    assert all("income" in p and "expense" in p for p in points)
+    assert len(points) == 12
+    assert points[0]["month"] == 1 and points[0]["year"] == 2025
+    assert points[-1]["month"] == 12
+
+
+def test_series_year_window(client: TestClient, auth_headers: dict[str, str]) -> None:
+    points = client.get(
+        "/api/v1/analytics/series?granularity=year&year=2026&count=4", headers=auth_headers
+    ).json()
+    assert [p["year"] for p in points] == [2023, 2024, 2025, 2026]
+
+
+def test_investment_transfer_counts_in_bucket(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    # Una inversión registrada como "No computable" (transfer) debe contar en el
+    # cubo de inversión, aunque NO cuente en gastos/neto.
+    inv = _cat(client, auth_headers, "Inversiones")
+    _mk(client, auth_headers, "200.00", "transfer", "Broker", inv)
+
+    body = client.get(OVERVIEW, headers=auth_headers).json()
+    buckets = {b["bucket"]: b for b in body["buckets"]}
+    assert buckets["investment"]["spent"] == "200.00"
+    # No cuenta en gastos ni en el neto.
+    assert body["summary"]["expense"] == "0.00"

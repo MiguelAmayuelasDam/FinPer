@@ -308,9 +308,9 @@ export const api = {
         `/analytics/overview?granularity=${granularity}&year=${year}&month=${month}`,
         { auth: true },
       ),
-    series: (granularity: Granularity, count: number): Promise<SeriesPoint[]> =>
+    series: (granularity: Granularity, year: number, count: number): Promise<SeriesPoint[]> =>
       request<SeriesPoint[]>(
-        `/analytics/series?granularity=${granularity}&count=${count}`,
+        `/analytics/series?granularity=${granularity}&year=${year}&count=${count}`,
         { auth: true },
       ),
   },

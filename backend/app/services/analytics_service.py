@@ -63,6 +63,8 @@ def overview(
     summary = Summary(income=income, expense=expense, net=income - expense)
 
     # Cubos 50-30-20: presupuesto desde la configuración, gasto real por bucket.
+    # Cuentan gastos Y traspasos asignados al cubo (una inversión es parte de tu
+    # 20% aunque se registre como traspaso). Los ingresos nunca son cubo de gasto.
     budget = budget_service.get_or_default(db, user)
     pcts = {"living": budget.living_pct, "monthly": budget.monthly_pct,
             "investment": budget.investment_pct}
@@ -71,7 +73,7 @@ def overview(
         .join(Category, Transaction.category_id == Category.id)
         .where(
             Transaction.user_id == user.id,
-            Transaction.type == "expense",
+            Transaction.type.in_(["expense", "transfer"]),
             Transaction.occurred_on >= d_from,
             Transaction.occurred_on <= d_to,
         )
@@ -124,12 +126,16 @@ def overview(
     )
 
 
-def series(db: Session, user: User, granularity: str, count: int) -> list[SeriesPoint]:
-    today = date.today()
+def series(db: Session, user: User, granularity: str, year: int, count: int) -> list[SeriesPoint]:
+    """Serie para el navegador. `year` es el año-ancla de la ventana mostrada.
+
+    - `month`: los 12 meses de `year`.
+    - `year`: los `count` años que terminan en `year`.
+    """
     points: list[SeriesPoint] = []
 
     if granularity == "year":
-        for y in range(today.year - count + 1, today.year + 1):
+        for y in range(year - count + 1, year + 1):
             d_from, d_to, _, _ = _period_range("year", y, 1)
             points.append(
                 SeriesPoint(
@@ -140,19 +146,11 @@ def series(db: Session, user: User, granularity: str, count: int) -> list[Series
             )
         return points
 
-    # Últimos `count` meses hasta el mes actual.
-    y, m = today.year, today.month
-    seq: list[tuple[int, int]] = []
-    for _ in range(count):
-        seq.append((y, m))
-        m -= 1
-        if m == 0:
-            m, y = 12, y - 1
-    for yy, mm in reversed(seq):
-        d_from, d_to, _, _ = _period_range("month", yy, mm)
+    for mm in range(1, 13):
+        d_from, d_to, _, _ = _period_range("month", year, mm)
         points.append(
             SeriesPoint(
-                label=_MONTHS_SHORT[mm - 1], year=yy, month=mm,
+                label=_MONTHS_SHORT[mm - 1], year=year, month=mm,
                 income=_sum(db, user, "income", d_from, d_to),
                 expense=_sum(db, user, "expense", d_from, d_to),
             )

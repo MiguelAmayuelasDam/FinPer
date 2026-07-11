@@ -33,6 +33,7 @@ def series(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     granularity: Granularity = "month",
-    count: int = Query(default=12, ge=1, le=36),
+    year: int = Query(default_factory=lambda: date.today().year, ge=2000, le=2100),
+    count: int = Query(default=6, ge=1, le=36),
 ) -> list:
-    return analytics_service.series(db, user, granularity, count)
+    return analytics_service.series(db, user, granularity, year, count)
