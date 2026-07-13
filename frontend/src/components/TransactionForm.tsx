@@ -13,6 +13,8 @@ import {
 import type { Category, Transaction, TransactionInput, TransactionType } from "@/lib/api"
 
 const NO_CATEGORY = "none"
+// Tope máximo del importe (evita teclear valores absurdos); alineado con el backend.
+const MAX_AMOUNT = 9_999_999
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -77,8 +79,12 @@ export function TransactionForm({
           inputMode="decimal"
           step="0.01"
           min="0"
+          max={MAX_AMOUNT}
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value
+            if (v === "" || Number(v) <= MAX_AMOUNT) setAmount(v)
+          }}
           required
         />
       </div>

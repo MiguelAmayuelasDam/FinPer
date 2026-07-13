@@ -40,6 +40,7 @@ class AnalyticsOverview(BaseModel):
     date_from: date
     date_to: date
     is_current: bool  # el periodo es el mes actual (permite previsión)
+    income_base: MoneyStr  # ingreso base del periodo (mes, o suma de los 12 en año)
     summary: Summary
     buckets: list[BucketStat]
     categories: list[CategoryStat]

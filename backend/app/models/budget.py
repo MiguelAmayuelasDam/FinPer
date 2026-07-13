@@ -28,6 +28,10 @@ class Budget(Base):
     living_pct: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
     monthly_pct: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
     investment_pct: Mapped[int] = mapped_column(Integer, nullable=False, default=20)
+    # Meses objetivo del colchón de emergencia (3–6); base = ingreso mensual habitual.
+    emergency_fund_months: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
+    # Gasto mensual para dimensionar el colchón; si es NULL usa el ingreso habitual.
+    emergency_monthly_need: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )

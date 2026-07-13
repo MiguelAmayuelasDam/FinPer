@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-import { ThemeToggle } from "@/components/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +31,11 @@ const STATUS_BAR: Record<BucketStat["status"], string> = {
   over: "bg-red-500",
 }
 
+// Tope máximo de cualquier importe editable (importe, ingreso, previsto).
+const MAX_AMOUNT = 9_999_999
+// Acepta el valor solo si no supera el tope (evita teclear importes absurdos).
+const withinCap = (v: string) => v === "" || Number(v) <= MAX_AMOUNT
+
 function daysElapsed(from: string, to: string): number {
   const f = new Date(`${from}T00:00:00`)
   const t = new Date(`${to}T00:00:00`)
@@ -41,36 +45,72 @@ function daysElapsed(from: string, to: string): number {
   return Math.max(1, Math.floor((end.getTime() - f.getTime()) / 86_400_000) + 1)
 }
 
+type Pcts = { living_pct: number; monthly_pct: number; investment_pct: number }
+
 function BudgetDialog({
   open,
   onOpenChange,
   onSaved,
+  granularity,
+  year,
+  month,
+  periodLabel,
+  incomeBase,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   onSaved: () => void
+  granularity: Granularity
+  year: number
+  month: number
+  periodLabel: string
+  incomeBase: string
 }) {
-  const [budget, setBudget] = useState<Budget | null>(null)
+  const [pcts, setPcts] = useState<Pcts>({ living_pct: 50, monthly_pct: 30, investment_pct: 20 })
+  const [income, setIncome] = useState("")
+  const [setAsDefault, setSetAsDefault] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  const isMonth = granularity === "month"
 
   useEffect(() => {
-    if (open) {
-      api.budget.get().then(setBudget).catch(() => setBudget(null))
-      setError(null)
-    }
-  }, [open])
+    if (!open) return
+    setError(null)
+    setSetAsDefault(false)
+    setIncome(incomeBase)
+    setLoaded(false)
+    api.budget
+      .get()
+      .then((b) => {
+        setPcts({
+          living_pct: b.living_pct,
+          monthly_pct: b.monthly_pct,
+          investment_pct: b.investment_pct,
+        })
+      })
+      .finally(() => setLoaded(true))
+  }, [open, incomeBase])
 
-  if (!budget) return null
+  if (!open || !loaded) return null
 
-  const sum = budget.living_pct + budget.monthly_pct + budget.investment_pct
-  const canSave = sum === 100 && Number(budget.monthly_income) >= 0 && !saving
+  const sum = pcts.living_pct + pcts.monthly_pct + pcts.investment_pct
+  const incomeValid = !isMonth || (income !== "" && Number(income) >= 0)
+  const canSave = sum === 100 && incomeValid && !saving
 
   const save = async () => {
     setSaving(true)
     setError(null)
+    const amount = income === "" ? "0" : income
     try {
-      await api.budget.update(budget)
+      if (isMonth) {
+        await api.budget.setIncome(year, month, amount)
+      }
+      await api.budget.update({
+        ...pcts,
+        ...(isMonth && setAsDefault ? { monthly_income: amount } : {}),
+      })
       onOpenChange(false)
       onSaved()
     } catch (err) {
@@ -80,7 +120,7 @@ function BudgetDialog({
     }
   }
 
-  const pctField = (key: "living_pct" | "monthly_pct" | "investment_pct", label: string) => (
+  const pctField = (key: keyof Pcts, label: string) => (
     <div className="space-y-1">
       <Label htmlFor={key}>{label}</Label>
       <Input
@@ -88,8 +128,8 @@ function BudgetDialog({
         type="number"
         min="0"
         max="100"
-        value={budget[key]}
-        onChange={(e) => setBudget({ ...budget, [key]: Number(e.target.value) })}
+        value={pcts[key]}
+        onChange={(e) => setPcts({ ...pcts, [key]: Number(e.target.value) })}
       />
     </div>
   )
@@ -100,22 +140,44 @@ function BudgetDialog({
         <DialogHeader>
           <DialogTitle>Ajustar presupuesto</DialogTitle>
           <DialogDescription>
-            Tu ingreso mensual y el reparto 50-30-20 (los porcentajes deben sumar 100).
+            {isMonth
+              ? `Ingreso de ${periodLabel} y el reparto 50-30-20 (los porcentajes deben sumar 100).`
+              : "El ingreso se ajusta mes a mes; aquí solo el reparto 50-30-20 (debe sumar 100)."}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor="income">Ingreso mensual (€)</Label>
-            <Input
-              id="income"
-              type="number"
-              min="0"
-              max="9999999"
-              step="0.01"
-              value={budget.monthly_income}
-              onChange={(e) => setBudget({ ...budget, monthly_income: e.target.value })}
-            />
-          </div>
+          {isMonth ? (
+            <div className="space-y-1">
+              <Label htmlFor="income">Ingreso de {periodLabel} (€)</Label>
+              <Input
+                id="income"
+                type="number"
+                min="0"
+                max={MAX_AMOUNT}
+                step="0.01"
+                value={income}
+                onChange={(e) => withinCap(e.target.value) && setIncome(e.target.value)}
+              />
+              <label className="flex items-center gap-2 pt-1 text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={setAsDefault}
+                  onChange={(e) => setSetAsDefault(e.target.checked)}
+                />
+                Usar también como ingreso habitual
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Label>Ingreso {periodLabel} (suma de los 12 meses)</Label>
+              <p className="rounded-md border bg-muted px-3 py-2 text-sm font-semibold">
+                {formatMoney(incomeBase)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                El ingreso se ajusta mes a mes desde la vista de Meses.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2">
             {pctField("living_pct", "Vida %")}
             {pctField("monthly_pct", "Mes %")}
@@ -146,9 +208,19 @@ function BudgetDialog({
 export default function Analytics() {
   const today = new Date()
   const currentYear = today.getFullYear()
-  const [granularity, setGranularity] = useState<Granularity>("month")
-  const [sel, setSel] = useState({ year: currentYear, month: today.getMonth() + 1 })
-  const [navYear, setNavYear] = useState(currentYear) // año-ancla del navegador
+  const [searchParams] = useSearchParams()
+
+  // Periodo inicial: si se llega con ?year&month (p. ej. desde el dashboard),
+  // se abre en ese periodo; si no, en el mes actual.
+  const pYear = Number(searchParams.get("year"))
+  const pMonth = Number(searchParams.get("month"))
+  const initGranularity: Granularity = searchParams.get("granularity") === "year" ? "year" : "month"
+  const initYear = pYear >= 2000 && pYear <= 2100 ? pYear : currentYear
+  const initMonth = pMonth >= 1 && pMonth <= 12 ? pMonth : today.getMonth() + 1
+
+  const [granularity, setGranularity] = useState<Granularity>(initGranularity)
+  const [sel, setSel] = useState({ year: initYear, month: initMonth })
+  const [navYear, setNavYear] = useState(initYear) // año-ancla del navegador
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null)
   const [series, setSeries] = useState<SeriesPoint[]>([])
   const [budget, setBudget] = useState<Budget | null>(null)
@@ -220,18 +292,7 @@ export default function Analytics() {
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8" style={{ zoom: 1.1 }}>
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Análisis</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="ghost" asChild>
-            <Link to="/movimientos">Movimientos</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link to="/">Inicio</Link>
-          </Button>
-        </div>
-      </header>
+      <h1 className="mb-4 text-3xl font-bold">Análisis</h1>
 
       {/* Selector de periodo */}
       <div className="mb-3 flex gap-2">
@@ -412,13 +473,15 @@ export default function Analytics() {
                               <input
                                 type="number"
                                 min="0"
-                                max="9999999"
+                                max={MAX_AMOUNT}
                                 step="0.01"
                                 aria-label={`Previsto de ${c.name}`}
                                 className="w-full bg-transparent text-right text-sm outline-none"
                                 placeholder="0"
                                 value={previstoStr}
-                                onChange={(e) => setForecastValue(id, e.target.value)}
+                                onChange={(e) =>
+                                  withinCap(e.target.value) && setForecastValue(id, e.target.value)
+                                }
                                 onBlur={() => saveForecast(id)}
                               />
                               <span className="ml-0.5 text-muted-foreground">€</span>
@@ -479,6 +542,11 @@ export default function Analytics() {
         open={budgetOpen}
         onOpenChange={setBudgetOpen}
         onSaved={() => void loadOverview()}
+        granularity={granularity}
+        year={sel.year}
+        month={sel.month}
+        periodLabel={overview?.period_label ?? ""}
+        incomeBase={overview?.income_base ?? "0"}
       />
     </main>
   )

@@ -12,6 +12,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from app.schemas.category import CategoryRead
+from app.schemas.common import MAX_AMOUNT
 
 # income = ingreso · expense = gasto · transfer = no computable (traspaso).
 TransactionType = Literal["income", "expense", "transfer"]
@@ -24,7 +25,7 @@ def _quantize(value: Decimal) -> Decimal:
 
 
 class TransactionCreate(BaseModel):
-    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    amount: Decimal = Field(gt=0, le=MAX_AMOUNT, max_digits=12, decimal_places=2)
     type: TransactionType
     concept: str = Field(min_length=1, max_length=255)
     occurred_on: date
@@ -37,7 +38,9 @@ class TransactionCreate(BaseModel):
 
 
 class TransactionUpdate(BaseModel):
-    amount: Decimal | None = Field(default=None, gt=0, max_digits=12, decimal_places=2)
+    amount: Decimal | None = Field(
+        default=None, gt=0, le=MAX_AMOUNT, max_digits=12, decimal_places=2
+    )
     type: TransactionType | None = None
     concept: str | None = Field(default=None, min_length=1, max_length=255)
     occurred_on: date | None = None
@@ -50,7 +53,7 @@ class TransactionUpdate(BaseModel):
 
 
 class TransactionSplitPart(BaseModel):
-    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
+    amount: Decimal = Field(gt=0, le=MAX_AMOUNT, max_digits=12, decimal_places=2)
     category_id: uuid.UUID | None = None
 
     @field_validator("amount")

@@ -347,6 +347,99 @@ Testing
 
 **Estado:** ✅ Completada.
 
+### Ajustes posteriores a la Fase 5
+
+- **Ingreso mensual variable (no fijo).** Antes había un único `monthly_income`
+  por usuario y en la vista de año se multiplicaba `× 12`. Ahora cada `(año, mes)`
+  puede tener su propio ingreso (`MONTHLY_INCOME`, migración `0009`): meses estables
+  comparten importe, y un mes con ascenso/despido/extra se ajusta aparte. El
+  `monthly_income` de `Budget` pasa a ser el **ingreso habitual por defecto** para
+  los meses sin ajuste. En la vista de año, el ingreso base es la **suma de los 12
+  meses**. Nuevo endpoint `PUT /budget/income`; el diálogo "Ajustar presupuesto"
+  edita el ingreso del mes seleccionado (con casilla "usar también como habitual")
+  y en vista de año lo muestra en solo lectura como suma.
+  - *Por qué:* el ingreso real fluctúa; el `× 12` daba presupuestos irreales.
+- **Tope de importes: 9.999.999.** Los campos de importe (alta de movimiento),
+  ingreso mensual y previsto por categoría permitían números sin límite. Ahora hay
+  un tope validado en **backend** (Pydantic `le=9_999_999`, cubre movimientos,
+  divisiones, presupuesto, ingreso mensual y previsto) y bloqueado al teclear en
+  **frontend**.
+  - *Por qué:* evitar entradas absurdas/erróneas y desbordes visuales de la UI.
+
+### Colchón de emergencia + Dashboard de Inicio
+
+Completa lo que la Fase 5 dejó fuera (**colchón de emergencia**, US-20) y estrena
+el **dashboard de Inicio**.
+
+**Colchón de emergencia** (`/colchon`)
+- **Caja de ahorro virtual**: tabla propia `emergency_fund_contributions`
+  (migración `0010`), **no** son movimientos `transfer`, así que no ensucian
+  Movimientos ni el análisis pero siguen sin computar.
+- **Objetivo** = gasto mensual de referencia (el **ingreso mensual habitual**:
+  vida + mes + inversión) × **meses objetivo (3–6)**, configurable
+  (`Budget.emergency_fund_months`, por defecto 6).
+- Pantalla con la cantidad ahorrada en grande, barra de progreso con lo que falta,
+  botón **"Añadir monto"** (importe + fecha), borrado de aportaciones y listado.
+- Endpoints: `GET /emergency-fund`, `POST /emergency-fund/contributions`,
+  `DELETE /emergency-fund/contributions/{id}`, `PUT /emergency-fund/target`.
+
+**Dashboard de Inicio** (`/`, antes un placeholder)
+- **Donut Neto** del mes (arco verde ingresos / rojo gastos, neto en el centro).
+- **Mensajes 50-30-20**: en vez de cifras, un mensaje motivacional por cubo según
+  su estado — Vida/Mes con tono ánimo/cautela/alerta (verde/ámbar/rojo), e
+  Inversión con recordatorio si no ha invertido o enhorabuena si ya lo hace.
+- **Ritmo de gasto**: gasto medio/día y proyección a fin de mes.
+- **Tarjeta de colchón** (progreso, enlaza a `/colchon`).
+- **Últimos 5 movimientos** y **resumen de los últimos 6 meses** en mini-barras
+  (endpoint rodante `GET /analytics/recent?months=6`).
+
+**Por qué / decisiones**
+- Colchón en **tabla propia** (no `transfer`): es una simulación del dinero
+  apartado; mantenerlo fuera de `transactions` evita ruido y cálculos cruzados.
+- Mensajes en lugar de cifras en el dashboard: aportan **acción** ("qué hago") por
+  encima del dato, alineado con el pilar de "alertas proactivas".
+- El dashboard es un **adelanto** de Análisis, no un duplicado.
+
+**Testing:** +9 backend (colchón: objetivo, progreso, borrado, límites, `recent`)
+· +4 frontend (Dashboard y EmergencyFund).
+
+### Reforma de navegación y pulido del dashboard
+
+- **Barra superior global (estilo Fintonic).** Logo **Numario** (→ Inicio) a la
+  izquierda con el menú (Inicio · Movimientos · Análisis) a su lado; a la derecha,
+  el tema y **"Hola, {nick}"** con avatar y **submenú** (Mi perfil · Cerrar sesión).
+  Es **constante** en todas las páginas autenticadas (`AppLayout` con `Outlet`), y
+  se han eliminado las barras de navegación propias de cada página. **Importar**
+  sale del menú global y vive dentro de Movimientos.
+- **Página de perfil** (`/perfil`): nick (editable) y email. Cambiar el nick usa
+  `PATCH /auth/me` reutilizando la seguridad ya existente (Bearer, normalización y
+  **unicidad** del nick; `409` si está en uso).
+- **Donut "Estado del mes" corregido.** Antes comparaba ingresos vs gastos como
+  totales (confuso). Ahora el **aro = tu ingreso**, el **rojo = lo gastado** y el
+  **verde = lo que te queda (neto)**; si gastas más de lo que ingresas, el aro se
+  llena de rojo. La leyenda pasa a un **popup al pasar el ratón**. Tarjeta más
+  compacta para que el dashboard entre sin hacer scroll.
+- **Tarjeta 50-30-20 con mensajes personalizados.** El título es **dinámico**
+  (refleja el reparto configurado en "Ajustar presupuesto"). Se sustituyó el
+  mensaje único parametrizado por una **batería de mensajes por cubo y estado**
+  (Vida, Mes e Inversión con voz propia y varias variantes) para que no se repitan
+  y el consejo se sienta cercano.
+- **Colchón:** el **gasto mensual para vivir** ahora lo **elige el usuario**
+  (`PUT /emergency-fund/monthly-need`), no se fuerza al ingreso habitual; el
+  cálculo y las aportaciones se mantienen. La fecha de "Añadir monto" usa el
+  **calendario desplegable** (mismo `DatePicker` que Movimientos, sin fechas futuras).
+- **Dashboard:** muestra los **5 últimos movimientos**, el donut de "Estado del
+  mes" es más grande (con el importe del neto en una sola línea) y el **resumen de
+  6 meses es interactivo**: al pulsar un mes se abre **Análisis** ya posicionado en
+  ese mes (vía query params `?granularity&year&month`).
+
+**Por qué / decisiones**
+- Navegación constante = menos fricción y una IA-app que se siente como un producto.
+- El donut se rediseñó por **claridad**: "de mi ingreso, cuánto gasté vs guardé".
+- Gasto mensual del colchón editable: las necesidades varían por persona.
+
+**Testing:** +6 backend (perfil/nick y `monthly-need`) · +3 frontend (Profile).
+
 ---
 
 ## Vista transversal por áreas

@@ -54,6 +54,18 @@ def register_user(db: Session, *, email: str, password: str, nickname: str) -> U
     return user
 
 
+def update_nickname(db: Session, user: User, nickname: str) -> User:
+    """Cambia el nick del usuario (normalizado y único, salvo el suyo actual)."""
+    nickname_n = _normalize(nickname)
+    existing = db.scalar(select(User).where(User.nickname == nickname_n))
+    if existing is not None and existing.id != user.id:
+        raise NicknameAlreadyExistsError
+    user.nickname = nickname_n
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def authenticate_user(db: Session, *, identifier: str, password: str) -> User | None:
     ident = _normalize(identifier)
     user = db.scalar(select(User).where((User.email == ident) | (User.nickname == ident)))

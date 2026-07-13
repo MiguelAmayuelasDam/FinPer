@@ -3,7 +3,6 @@ import { Link } from "react-router-dom"
 import { ChevronDown, Search } from "lucide-react"
 
 import { SplitTransaction } from "@/components/SplitTransaction"
-import { ThemeToggle } from "@/components/ThemeToggle"
 import { TransactionForm } from "@/components/TransactionForm"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -23,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useAuth } from "@/context/AuthContext"
 import {
   ApiError,
   api,
@@ -59,7 +57,6 @@ function amountClass(type: Transaction["type"]): string {
 }
 
 export default function Transactions() {
-  const { logout } = useAuth()
   const today = todayISO()
   const [categories, setCategories] = useState<Category[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -174,20 +171,8 @@ export default function Transactions() {
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-6">
         <h1 className="text-3xl font-bold">Movimientos</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="ghost" asChild>
-            <Link to="/analisis">Análisis</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link to="/">Inicio</Link>
-          </Button>
-          <Button variant="outline" onClick={() => void logout()}>
-            Cerrar sesión
-          </Button>
-        </div>
       </header>
 
       {/* Filtros: fechas, categoría y buscador */}

@@ -14,6 +14,7 @@ const OVERVIEW = {
   date_from: "2026-07-01",
   date_to: "2026-07-31",
   is_current: true,
+  income_base: "1000.00",
   summary: { income: "1000.00", expense: "300.00", net: "700.00" },
   buckets: [
     { bucket: "living", label: "Vida", budget: "500.00", spent: "100.00", pct: 20, status: "ok" },
@@ -35,6 +36,7 @@ function installFetch() {
   const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
     if (url.includes("/analytics/overview")) return json(200, OVERVIEW)
     if (url.includes("/analytics/series")) return json(200, SERIES)
+    if (url.includes("/budget/income")) return json(204, null)
     if (url.includes("/budget")) return json(200, { monthly_income: "1000.00", living_pct: 50, monthly_pct: 30, investment_pct: 20 })
     if (url.includes("/forecast")) return json(204, null)
     return json(404, {})
@@ -43,9 +45,9 @@ function installFetch() {
   return fetchMock
 }
 
-function renderPage() {
+function renderPage(entry = "/analisis") {
   render(
-    <MemoryRouter initialEntries={["/analisis"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <Analytics />
     </MemoryRouter>,
   )
@@ -100,6 +102,47 @@ describe("Analytics", () => {
         category_id: "c1",
         amount: "80",
       })
+    })
+  })
+
+  it("ajusta el ingreso del mes desde 'Ajustar presupuesto'", async () => {
+    const fetchMock = installFetch()
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText("Reparto 50-30-20")
+
+    await user.click(screen.getByRole("button", { name: "Ajustar presupuesto" }))
+    const income = await screen.findByLabelText(/Ingreso de julio 2026/)
+    await user.clear(income)
+    await user.type(income, "1800")
+    await user.click(screen.getByRole("button", { name: "Guardar" }))
+
+    await waitFor(() => {
+      const putIncome = fetchMock.mock.calls.find(
+        ([u, init]) =>
+          (u as string).includes("/budget/income") &&
+          (init as RequestInit)?.method === "PUT",
+      )
+      expect(putIncome).toBeTruthy()
+      expect(JSON.parse((putIncome![1] as RequestInit).body as string)).toMatchObject({
+        year: 2026,
+        month: 7,
+        amount: "1800",
+      })
+    })
+  })
+
+  it("abre el periodo indicado en la URL (?year&month)", async () => {
+    const fetchMock = installFetch()
+    renderPage("/analisis?granularity=month&year=2026&month=3")
+    await waitFor(() => {
+      const calls = fetchMock.mock.calls.map(([u]) => u as string)
+      expect(
+        calls.some(
+          (u) =>
+            u.includes("/analytics/overview") && u.includes("year=2026") && u.includes("month=3"),
+        ),
+      ).toBe(true)
     })
   })
 

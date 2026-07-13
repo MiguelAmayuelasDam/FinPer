@@ -1,12 +1,12 @@
 """Endpoints de presupuesto (`/api/v1/budget`)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.budget import BudgetRead, BudgetUpdate
+from app.schemas.budget import BudgetRead, BudgetUpdate, MonthlyIncomeUpdate
 from app.services import budget_service
 
 router = APIRouter(prefix="/budget", tags=["budget"])
@@ -31,3 +31,13 @@ def update_budget(
         monthly_pct=payload.monthly_pct,
         investment_pct=payload.investment_pct,
     )
+
+
+@router.put("/income", status_code=status.HTTP_204_NO_CONTENT)
+def set_monthly_income(
+    payload: MonthlyIncomeUpdate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    budget_service.set_monthly_income(db, user, payload.year, payload.month, payload.amount)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

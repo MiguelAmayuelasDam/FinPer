@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 
-import { ThemeToggle } from "@/components/ThemeToggle"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -134,12 +133,9 @@ export default function Import() {
     <main className="mx-auto max-w-5xl p-4 sm:p-8">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Importar movimientos</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button variant="ghost" asChild>
-            <Link to="/movimientos">Volver a movimientos</Link>
-          </Button>
-        </div>
+        <Button variant="ghost" asChild>
+          <Link to="/movimientos">Volver a movimientos</Link>
+        </Button>
       </header>
 
       <div className="mb-6 flex flex-wrap items-center gap-3">

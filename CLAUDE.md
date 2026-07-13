@@ -169,8 +169,8 @@ arranque frío de Render).
 - [x] Registro/login
 - [x] Gestión de movimientos
 - [x] Categorías
-- [ ] Dashboard financiero
-- [ ] Regla 50-30-20
+- [x] Dashboard financiero
+- [x] Regla 50-30-20
 - [x] Importación CSV
 - [x] Clasificación inteligente (reglas + aprendizaje; sin IA de pago)
 - [ ] Tests

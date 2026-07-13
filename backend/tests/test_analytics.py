@@ -1,5 +1,7 @@
 """Tests de la analítica (resumen, cubos 50-30-20, categorías, series)."""
 
+from datetime import date
+
 from fastapi.testclient import TestClient
 
 TX = "/api/v1/transactions"
@@ -91,6 +93,17 @@ def test_series_year_window(client: TestClient, auth_headers: dict[str, str]) ->
         "/api/v1/analytics/series?granularity=year&year=2026&count=4", headers=auth_headers
     ).json()
     assert [p["year"] for p in points] == [2023, 2024, 2025, 2026]
+
+
+def test_recent_ends_in_current_month(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    points = client.get("/api/v1/analytics/recent?months=6", headers=auth_headers).json()
+    assert len(points) == 6
+    today = date.today()
+    # El último punto es el mes en curso; la ventana rueda entre años.
+    assert points[-1]["year"] == today.year
+    assert points[-1]["month"] == today.month
 
 
 def test_investment_transfer_counts_in_bucket(

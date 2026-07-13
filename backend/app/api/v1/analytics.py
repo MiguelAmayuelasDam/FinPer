@@ -37,3 +37,13 @@ def series(
     count: int = Query(default=6, ge=1, le=36),
 ) -> list:
     return analytics_service.series(db, user, granularity, year, count)
+
+
+@router.get("/recent", response_model=list[SeriesPoint])
+def recent(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    months: int = Query(default=6, ge=1, le=24),
+) -> list:
+    """Serie rodante de los últimos N meses (para el dashboard de Inicio)."""
+    return analytics_service.recent_months(db, user, months)

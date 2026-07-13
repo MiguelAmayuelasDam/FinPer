@@ -64,7 +64,7 @@ def _quantize(value: Decimal) -> Decimal:
 def overview(
     db: Session, user: User, granularity: str, year: int, month: int
 ) -> AnalyticsOverview:
-    d_from, d_to, months, label = _period_range(granularity, year, month)
+    d_from, d_to, _months, label = _period_range(granularity, year, month)
 
     income = _sum(db, user, "income", d_from, d_to)
     expense = _sum(db, user, "expense", d_from, d_to)
@@ -76,6 +76,9 @@ def overview(
     budget = budget_service.get_or_default(db, user)
     pcts = {"living": budget.living_pct, "monthly": budget.monthly_pct,
             "investment": budget.investment_pct}
+    # Ingreso base del periodo: el del mes, o la suma de los 12 meses en vista de
+    # año (cada mes con su propio ingreso; ya no se multiplica por 12).
+    income_base = budget_service.income_for_period(db, user, granularity, year, month)
     spent_rows = db.execute(
         select(Category.bucket, func.coalesce(func.sum(Transaction.amount), 0))
         .join(Category, Transaction.category_id == Category.id)
@@ -92,7 +95,7 @@ def overview(
     buckets: list[BucketStat] = []
     for bucket, blabel in _BUCKETS:
         spent = spent_by_bucket.get(bucket, Decimal(0))
-        bucket_budget = _quantize(budget.monthly_income * pcts[bucket] / 100 * months)
+        bucket_budget = _quantize(income_base * pcts[bucket] / 100)
         pct = int(spent / bucket_budget * 100) if bucket_budget > 0 else 0
         status = "over" if pct > 100 else "warning" if pct >= 80 else "ok"
         buckets.append(
@@ -154,7 +157,7 @@ def overview(
 
     return AnalyticsOverview(
         period_label=label, date_from=d_from, date_to=d_to, is_current=is_current,
-        summary=summary, buckets=buckets, categories=categories,
+        income_base=income_base, summary=summary, buckets=buckets, categories=categories,
     )
 
 
@@ -183,6 +186,31 @@ def series(db: Session, user: User, granularity: str, year: int, count: int) -> 
         points.append(
             SeriesPoint(
                 label=_MONTHS_SHORT[mm - 1], year=year, month=mm,
+                income=_sum(db, user, "income", d_from, d_to),
+                expense=_sum(db, user, "expense", d_from, d_to),
+            )
+        )
+    return points
+
+
+def recent_months(db: Session, user: User, count: int) -> list[SeriesPoint]:
+    """Los últimos `count` meses terminando en el mes actual (rueda entre años)."""
+    today = date.today()
+    ym: list[tuple[int, int]] = []
+    y, m = today.year, today.month
+    for _ in range(count):
+        ym.append((y, m))
+        m -= 1
+        if m == 0:
+            m, y = 12, y - 1
+    ym.reverse()  # de más antiguo a más reciente
+
+    points: list[SeriesPoint] = []
+    for yy, mm in ym:
+        d_from, d_to, _, _ = _period_range("month", yy, mm)
+        points.append(
+            SeriesPoint(
+                label=_MONTHS_SHORT[mm - 1], year=yy, month=mm,
                 income=_sum(db, user, "income", d_from, d_to),
                 expense=_sum(db, user, "expense", d_from, d_to),
             )
