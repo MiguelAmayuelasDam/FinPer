@@ -19,7 +19,7 @@ test("análisis: ingresos vs gastos excluye lo no computable", async ({ page }) 
   await page.getByLabel("Contraseña", { exact: true }).fill(u.password)
   await page.getByLabel("Repetir contraseña").fill(u.password)
   await page.getByRole("button", { name: "Registrarme" }).click()
-  await page.getByRole("link", { name: "Ver movimientos" }).click()
+  await page.getByRole("link", { name: "Movimientos" }).click()
 
   // Crear movimientos vía API (ingreso 1000, gasto 300, transfer 500).
   await page.evaluate(

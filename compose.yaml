@@ -30,6 +30,10 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-me}
       ENVIRONMENT: ${ENVIRONMENT:-development}
+      # En dev/E2E el login no se estrangula (varios registros/logins en paralelo
+      # en los tests). El rate limiting real se cubre en test_rate_limit.py y se
+      # fija por entorno en producción. Override con la env del mismo nombre.
+      RATE_LIMIT_LOGIN: ${RATE_LIMIT_LOGIN:-1000/minute}
     ports:
       - "8000:8000"
     # Hot-reload en desarrollo: el código del host se monta en /app. El entorno

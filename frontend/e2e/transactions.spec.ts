@@ -24,7 +24,7 @@ test("registro y alta de un movimiento", async ({ page }) => {
   await page.getByRole("button", { name: "Registrarme" }).click()
 
   // Ir a movimientos.
-  await page.getByRole("link", { name: "Ver movimientos" }).click()
+  await page.getByRole("link", { name: "Movimientos" }).click()
   await expect(page.getByRole("heading", { name: "Movimientos" })).toBeVisible()
   await expect(page.getByText(/No hay movimientos/)).toBeVisible()
 

@@ -58,10 +58,14 @@ export function TopNav() {
             <PopoverTrigger asChild>
               <button
                 type="button"
+                aria-label="Menú de perfil"
                 className="flex items-center gap-2 rounded-full py-1 pl-3 pr-1 text-sm transition-colors hover:bg-accent"
               >
                 <span className="text-muted-foreground">
-                  Hola, <span className="font-semibold text-foreground">{user?.nickname}</span>
+                  Hola,{" "}
+                  <span className="font-semibold text-foreground" data-testid="user-nickname">
+                    {user?.nickname}
+                  </span>
                 </span>
                 <UserCircle2 className="size-7 text-muted-foreground" />
               </button>
