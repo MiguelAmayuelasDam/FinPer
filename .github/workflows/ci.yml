@@ -42,8 +42,8 @@ jobs:
         run: uv run mypy app
       - name: Alembic (migraciones)
         run: uv run alembic upgrade head
-      - name: Pytest
-        run: uv run pytest
+      - name: Pytest (con cobertura)
+        run: uv run pytest --cov
 
   frontend:
     name: Frontend (lint + tests)
@@ -65,8 +65,8 @@ jobs:
         run: npm run lint
       - name: Type check
         run: npm run typecheck
-      - name: Vitest
-        run: npm run test
+      - name: Vitest (con cobertura)
+        run: npm run test:coverage
       - name: Build
         run: npm run build
 
