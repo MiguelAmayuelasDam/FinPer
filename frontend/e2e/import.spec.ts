@@ -25,7 +25,7 @@ test("importar un CSV de extracto", async ({ page }) => {
   await page.getByLabel("Repetir contraseña").fill(u.password)
   await page.getByRole("button", { name: "Registrarme" }).click()
 
-  await page.getByRole("link", { name: "Ver movimientos" }).click()
+  await page.getByRole("link", { name: "Movimientos" }).click()
   await page.getByRole("link", { name: "Importar CSV" }).click()
   await expect(page.getByRole("heading", { name: "Importar movimientos" })).toBeVisible()
 

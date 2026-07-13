@@ -17,6 +17,7 @@ Todos los endpoints salvo autenticación requieren cabecera
 | POST   | `/auth/refresh`     | Renovar access token (rotación)     | No*  |
 | POST   | `/auth/logout`      | Invalidar refresh token             | Sí   |
 | GET    | `/auth/me`          | Datos del usuario autenticado       | Sí   |
+| PATCH  | `/auth/me`          | Actualizar perfil (nick)            | Sí   |
 
 \* requiere refresh token válido.
 
@@ -53,6 +54,9 @@ El refresh **rota**: cada renovación revoca el token usado y emite uno nuevo
 (reutilizar uno ya rotado → `401`). El logout revoca el refresh indicado.
 
 **GET /auth/me** → `200 { "id", "email", "nickname" }` (requiere Bearer).
+
+**PATCH /auth/me** → cambia el nick: `{ "nickname": "nuevonick" }` → `200 UserRead`.
+Valida patrón/longitud (3–30) y unicidad (`409` si el nick ya está en uso).
 
 ---
 
@@ -171,33 +175,96 @@ sistema **aprende** una regla (keyword → categoría) para futuras importacione
 
 ## Budget
 
-| Método | Ruta         | Descripción                        |
-| ------ | ------------ | ---------------------------------- |
-| GET    | `/budget`    | Obtener configuración 50-30-20     |
-| PUT    | `/budget`    | Actualizar ingreso y colchón       |
+| Método | Ruta              | Descripción                                         |
+| ------ | ----------------- | --------------------------------------------------- |
+| GET    | `/budget`         | Configuración 50-30-20 + ingreso habitual (o defaults) |
+| PUT    | `/budget`         | Actualizar porcentajes (y opcionalmente el habitual)|
+| PUT    | `/budget/income`  | Fijar el ingreso de un `(year, month)` concreto     |
+
+```json
+// GET /budget — ingreso "habitual" por defecto + los 3 porcentajes (deben sumar 100)
+{ "monthly_income": "2000.00", "living_pct": 50, "monthly_pct": 30, "investment_pct": 20 }
+
+// PUT /budget — porcentajes obligatorios; `monthly_income` OPCIONAL (si se omite,
+// no se cambia el ingreso habitual). Importe máximo: 9.999.999.
+{ "living_pct": 50, "monthly_pct": 30, "investment_pct": 20, "monthly_income": "2000.00" }
+
+// PUT /budget/income — ingreso de un mes concreto (fluctúa mes a mes) → 204
+{ "year": 2026, "month": 7, "amount": "1800.00" }
+```
+
+> **Ingreso mensual variable:** el ingreso no es fijo. Cada `(año, mes)` puede
+> tener el suyo (`/budget/income`); los meses sin ajustar usan el `monthly_income`
+> habitual. En `overview` de un **año**, el ingreso base es la **suma de los 12
+> meses** (no `monthly_income × 12`).
 
 ---
 
 ## Analytics
 
-| Método | Ruta                     | Descripción                              |
-| ------ | ------------------------ | ---------------------------------------- |
-| GET    | `/analytics/summary`     | Resumen del mes: ingresos, gastos, ahorro|
-| GET    | `/analytics/buckets`     | Consumo real vs. presupuesto por cubo    |
-| GET    | `/analytics/by-category` | Gasto agrupado por categoría             |
-| GET    | `/analytics/alerts`      | Alertas activas de presupuesto           |
+Regla: los movimientos **No computables** (`type = transfer`) **no cuentan** en
+ingresos, gastos, neto ni cubos.
 
-**GET /analytics/buckets**
+| Método | Ruta                    | Descripción                                     |
+| ------ | ----------------------- | ----------------------------------------------- |
+| GET    | `/analytics/overview`   | Resumen + cubos 50-30-20 + gasto por categoría  |
+| GET    | `/analytics/series`     | Serie ingresos/gastos por mes/año (navegador)   |
+| GET    | `/analytics/recent`     | Serie rodante de los últimos N meses (dashboard)|
+
+Query params: `granularity=month\|year`, `year`, `month` (overview) · `count` (series).
+
+**GET /analytics/overview?granularity=month&year=2026&month=7**
 ```json
 {
-  "month": "2026-07",
-  "income": "2000.00",
+  "period_label": "julio 2026",
+  "date_from": "2026-07-01", "date_to": "2026-07-31",
+  "income_base": "2000.00",
+  "summary": { "income": "2000.00", "expense": "1360.00", "net": "640.00" },
   "buckets": [
-    { "bucket": "living",     "budget": "1000.00", "spent": "820.00", "pct": 82 },
-    { "bucket": "monthly",    "budget": "600.00",  "spent": "540.00", "pct": 90 },
-    { "bucket": "investment", "budget": "400.00",  "spent": "400.00", "pct": 100 }
-  ]
+    { "bucket": "living",     "label": "Vida",      "budget": "1000.00", "spent": "820.00", "pct": 82, "status": "warning" },
+    { "bucket": "monthly",    "label": "Mes",       "budget": "600.00",  "spent": "540.00", "pct": 90, "status": "warning" },
+    { "bucket": "investment", "label": "Inversión", "budget": "400.00",  "spent": "0.00",   "pct": 0,  "status": "ok" }
+  ],
+  "categories": [ { "category_id": "uuid", "name": "Supermercado", "emoji": "🛒", "bucket": "living", "spent": "420.00" } ]
 }
+```
+`status`: `ok` (<80%) · `warning` (80–100%) · `over` (>100%) para el semáforo.
+
+**GET /analytics/recent?months=6** → los últimos `months` meses terminando en el
+mes actual (rueda entre años); mismo objeto `SeriesPoint` que `/series`.
+
+---
+
+## Colchón de emergencia
+
+Caja de ahorro **virtual** (no son movimientos): objetivo = gasto mensual ×
+meses (3–6); progreso = suma de aportaciones. El **gasto mensual** lo elige el
+usuario (`monthly-need`) y, si no lo fija, se usa su ingreso mensual habitual.
+
+| Método | Ruta                                      | Descripción                             |
+| ------ | ----------------------------------------- | --------------------------------------- |
+| GET    | `/emergency-fund`                         | Resumen (objetivo, ahorrado, aportaciones) |
+| PUT    | `/emergency-fund/target`                  | Fijar meses objetivo (3–6)              |
+| PUT    | `/emergency-fund/monthly-need`            | Fijar el gasto mensual de referencia    |
+| POST   | `/emergency-fund/contributions`           | Añadir aportación (importe + fecha)     |
+| DELETE | `/emergency-fund/contributions/{id}`      | Borrar una aportación                   |
+
+```json
+// GET /emergency-fund
+{
+  "monthly_need": "1000.00", "target_months": 6, "target": "6000.00",
+  "saved": "1500.00", "remaining": "4500.00", "pct": 25,
+  "contributions": [ { "id": "uuid", "amount": "1500.00", "occurred_on": "2026-07-01" } ]
+}
+
+// POST /emergency-fund/contributions  (importe máximo 9.999.999)
+{ "amount": "200.00", "occurred_on": "2026-07-13" }
+
+// PUT /emergency-fund/target
+{ "months": 3 }
+
+// PUT /emergency-fund/monthly-need  (gasto mensual para vivir; máx 9.999.999)
+{ "amount": "800.00" }
 ```
 
 ## Convenciones

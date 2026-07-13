@@ -14,6 +14,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     TokenPair,
+    UpdateProfileRequest,
     UserRead,
 )
 from app.services.auth_service import (
@@ -25,6 +26,7 @@ from app.services.auth_service import (
     register_user,
     revoke_refresh_token,
     rotate_refresh_token,
+    update_nickname,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -82,3 +84,17 @@ def logout(
 @router.get("/me", response_model=UserRead)
 def me(user: User = Depends(get_current_user)) -> User:
     return user
+
+
+@router.patch("/me", response_model=UserRead)
+def update_me(
+    payload: UpdateProfileRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> User:
+    try:
+        return update_nickname(db, user, payload.nickname)
+    except NicknameAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Ese nick ya está en uso"
+        ) from exc

@@ -22,7 +22,8 @@ def test_amount_roundtrips_as_string(client: TestClient, auth_headers: dict[str,
 
 def test_amount_no_float_rounding_error(client: TestClient, auth_headers: dict[str, str]) -> None:
     # 0.1 + 0.2 en float daría 0.30000000000000004; con Decimal debe ser exacto.
-    for value in ["0.10", "0.20", "1234567890.99"]:
+    # El valor grande queda dentro del tope de importe (9.999.999).
+    for value in ["0.10", "0.20", "1234567.89"]:
         response = client.post(
             TX,
             headers=auth_headers,

@@ -58,6 +58,7 @@ export interface TransactionFilters {
   to?: string
   category_id?: string
   type?: TransactionType
+  size?: number
 }
 
 export interface SplitPart {
@@ -97,6 +98,79 @@ export interface ConfirmItem {
   occurred_on: string
   category_id: string | null
 }
+
+export interface Budget {
+  monthly_income: string // ingreso "habitual" por defecto
+  living_pct: number
+  monthly_pct: number
+  investment_pct: number
+}
+
+// Payload de PUT /budget: porcentajes siempre; `monthly_income` solo si se quiere
+// cambiar el ingreso habitual (si se omite, no se toca).
+export interface BudgetUpdate {
+  living_pct: number
+  monthly_pct: number
+  investment_pct: number
+  monthly_income?: string
+}
+
+export type BucketStatus = "ok" | "warning" | "over"
+
+export interface BucketStat {
+  bucket: Bucket
+  label: string
+  budget: string
+  spent: string
+  pct: number
+  status: BucketStatus
+}
+
+export interface CategoryStat {
+  category_id: string | null
+  name: string
+  emoji: string | null
+  bucket: Bucket | null
+  spent: string
+  forecast: string | null
+}
+
+export interface AnalyticsOverview {
+  period_label: string
+  date_from: string
+  date_to: string
+  is_current: boolean
+  income_base: string // ingreso base del periodo (mes, o suma de los 12 en año)
+  summary: { income: string; expense: string; net: string }
+  buckets: BucketStat[]
+  categories: CategoryStat[]
+}
+
+export interface SeriesPoint {
+  label: string
+  year: number
+  month: number | null
+  income: string
+  expense: string
+}
+
+export interface EmergencyContribution {
+  id: string
+  amount: string
+  occurred_on: string
+}
+
+export interface EmergencyFund {
+  monthly_need: string // gasto mensual de referencia (ingreso habitual)
+  target_months: number // meses objetivo (3–6)
+  target: string
+  saved: string
+  remaining: string
+  pct: number
+  contributions: EmergencyContribution[]
+}
+
+export type Granularity = "month" | "year"
 
 export class ApiError extends Error {
   status: number
@@ -208,6 +282,9 @@ export const api = {
 
   me: (): Promise<User> => request<User>("/auth/me", { auth: true }),
 
+  updateProfile: (nickname: string): Promise<User> =>
+    request<User>("/auth/me", { method: "PATCH", body: { nickname }, auth: true }),
+
   logout: (refresh_token: string): Promise<void> =>
     request<void>("/auth/logout", { method: "POST", body: { refresh_token }, auth: true }),
 
@@ -224,6 +301,7 @@ export const api = {
       if (filters.to) params.set("to", filters.to)
       if (filters.category_id) params.set("category_id", filters.category_id)
       if (filters.type) params.set("type", filters.type)
+      if (filters.size) params.set("size", String(filters.size))
       const qs = params.toString()
       return request<Transaction[]>(`/transactions${qs ? `?${qs}` : ""}`, { auth: true })
     },
@@ -249,5 +327,65 @@ export const api = {
     },
     confirm: (items: ConfirmItem[]): Promise<{ created: number }> =>
       request<{ created: number }>("/import/confirm", { method: "POST", body: { items }, auth: true }),
+  },
+
+  budget: {
+    get: (): Promise<Budget> => request<Budget>("/budget", { auth: true }),
+    update: (b: BudgetUpdate): Promise<Budget> =>
+      request<Budget>("/budget", { method: "PUT", body: b, auth: true }),
+    setIncome: (year: number, month: number, amount: string): Promise<void> =>
+      request<void>("/budget/income", {
+        method: "PUT",
+        body: { year, month, amount },
+        auth: true,
+      }),
+  },
+
+  forecast: {
+    set: (category_id: string, amount: string): Promise<void> =>
+      request<void>("/forecast", {
+        method: "PUT",
+        body: { category_id, amount },
+        auth: true,
+      }),
+  },
+
+  analytics: {
+    overview: (granularity: Granularity, year: number, month: number): Promise<AnalyticsOverview> =>
+      request<AnalyticsOverview>(
+        `/analytics/overview?granularity=${granularity}&year=${year}&month=${month}`,
+        { auth: true },
+      ),
+    series: (granularity: Granularity, year: number, count: number): Promise<SeriesPoint[]> =>
+      request<SeriesPoint[]>(
+        `/analytics/series?granularity=${granularity}&year=${year}&count=${count}`,
+        { auth: true },
+      ),
+    recent: (months = 6): Promise<SeriesPoint[]> =>
+      request<SeriesPoint[]>(`/analytics/recent?months=${months}`, { auth: true }),
+  },
+
+  emergencyFund: {
+    get: (): Promise<EmergencyFund> => request<EmergencyFund>("/emergency-fund", { auth: true }),
+    addContribution: (amount: string, occurred_on: string): Promise<EmergencyContribution> =>
+      request<EmergencyContribution>("/emergency-fund/contributions", {
+        method: "POST",
+        body: { amount, occurred_on },
+        auth: true,
+      }),
+    deleteContribution: (id: string): Promise<void> =>
+      request<void>(`/emergency-fund/contributions/${id}`, { method: "DELETE", auth: true }),
+    setTarget: (months: number): Promise<EmergencyFund> =>
+      request<EmergencyFund>("/emergency-fund/target", {
+        method: "PUT",
+        body: { months },
+        auth: true,
+      }),
+    setMonthlyNeed: (amount: string): Promise<EmergencyFund> =>
+      request<EmergencyFund>("/emergency-fund/monthly-need", {
+        method: "PUT",
+        body: { amount },
+        auth: true,
+      }),
   },
 }

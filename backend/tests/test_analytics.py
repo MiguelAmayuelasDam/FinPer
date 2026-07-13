@@ -1,0 +1,121 @@
+"""Tests de la analítica (resumen, cubos 50-30-20, categorías, series)."""
+
+from datetime import date
+
+from fastapi.testclient import TestClient
+
+TX = "/api/v1/transactions"
+OVERVIEW = "/api/v1/analytics/overview?granularity=month&year=2026&month=7"
+
+
+def _mk(client, headers, amount, type_, concept, category=None, date_="2026-07-05"):
+    body = {"amount": amount, "type": type_, "concept": concept, "occurred_on": date_}
+    if category:
+        body["category_id"] = category
+    return client.post(TX, headers=headers, json=body)
+
+
+def _cat(client, headers, name):
+    cats = client.get("/api/v1/categories", headers=headers).json()
+    return next(c["id"] for c in cats if c["name"] == name)
+
+
+def test_requires_auth(client: TestClient) -> None:
+    assert client.get(OVERVIEW).status_code in {401, 403}
+
+
+def test_summary_excludes_transfer(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    _mk(client, auth_headers, "1000.00", "income", "Nomina")
+    _mk(client, auth_headers, "300.00", "expense", "Compra")
+    _mk(client, auth_headers, "500.00", "transfer", "Traspaso")  # no computable
+
+    summary = client.get(OVERVIEW, headers=auth_headers).json()["summary"]
+    assert summary["income"] == "1000.00"
+    assert summary["expense"] == "300.00"
+    assert summary["net"] == "700.00"  # el transfer no cuenta
+
+
+def test_buckets_budget_and_spent(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    client.put(
+        "/api/v1/budget",
+        headers=auth_headers,
+        json={
+            "monthly_income": "1000.00",
+            "living_pct": 50,
+            "monthly_pct": 30,
+            "investment_pct": 20,
+        },
+    )
+    superm = _cat(client, auth_headers, "Supermercado")
+    resta = _cat(client, auth_headers, "Restaurante")
+    _mk(client, auth_headers, "100.00", "expense", "Super", superm)
+    _mk(client, auth_headers, "60.00", "expense", "Cena", resta)
+
+    buckets = {b["bucket"]: b for b in client.get(OVERVIEW, headers=auth_headers).json()["buckets"]}
+    assert buckets["living"]["budget"] == "500.00"  # 1000 * 50%
+    assert buckets["living"]["spent"] == "100.00"
+    assert buckets["living"]["status"] == "ok"
+    assert buckets["monthly"]["budget"] == "300.00"
+    assert buckets["monthly"]["spent"] == "60.00"
+    assert buckets["investment"]["spent"] == "0.00"
+
+
+def test_by_category_sorted_desc(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    superm = _cat(client, auth_headers, "Supermercado")
+    resta = _cat(client, auth_headers, "Restaurante")
+    _mk(client, auth_headers, "100.00", "expense", "Super", superm)
+    _mk(client, auth_headers, "200.00", "expense", "Cena", resta)
+
+    categories = client.get(OVERVIEW, headers=auth_headers).json()["categories"]
+    assert categories[0]["spent"] == "200.00"
+    assert categories[0]["name"] == "Restaurante"
+
+
+def test_series_month_returns_12_of_year(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    points = client.get(
+        "/api/v1/analytics/series?granularity=month&year=2025", headers=auth_headers
+    ).json()
+    assert len(points) == 12
+    assert points[0]["month"] == 1 and points[0]["year"] == 2025
+    assert points[-1]["month"] == 12
+
+
+def test_series_year_window(client: TestClient, auth_headers: dict[str, str]) -> None:
+    points = client.get(
+        "/api/v1/analytics/series?granularity=year&year=2026&count=4", headers=auth_headers
+    ).json()
+    assert [p["year"] for p in points] == [2023, 2024, 2025, 2026]
+
+
+def test_recent_ends_in_current_month(
+    client: TestClient, auth_headers: dict[str, str]
+) -> None:
+    points = client.get("/api/v1/analytics/recent?months=6", headers=auth_headers).json()
+    assert len(points) == 6
+    today = date.today()
+    # El último punto es el mes en curso; la ventana rueda entre años.
+    assert points[-1]["year"] == today.year
+    assert points[-1]["month"] == today.month
+
+
+def test_investment_transfer_counts_in_bucket(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    # Una inversión registrada como "No computable" (transfer) debe contar en el
+    # cubo de inversión, aunque NO cuente en gastos/neto.
+    inv = _cat(client, auth_headers, "Inversiones")
+    _mk(client, auth_headers, "200.00", "transfer", "Broker", inv)
+
+    body = client.get(OVERVIEW, headers=auth_headers).json()
+    buckets = {b["bucket"]: b for b in body["buckets"]}
+    assert buckets["investment"]["spent"] == "200.00"
+    # No cuenta en gastos ni en el neto.
+    assert body["summary"]["expense"] == "0.00"

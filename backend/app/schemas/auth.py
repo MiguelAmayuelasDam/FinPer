@@ -28,6 +28,10 @@ class RegisterRequest(BaseModel):
         return value
 
 
+class UpdateProfileRequest(BaseModel):
+    nickname: str = Field(min_length=3, max_length=30, pattern=NICKNAME_PATTERN)
+
+
 class LoginRequest(BaseModel):
     # Identificador flexible: email o nick.
     identifier: str = Field(min_length=1, max_length=255)

@@ -8,6 +8,7 @@ interface AuthContextValue {
   loading: boolean
   login: (identifier: string, password: string) => Promise<void>
   register: (email: string, nickname: string, password: string) => Promise<void>
+  updateProfile: (nickname: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -57,6 +58,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   )
 
+  const updateProfile = useCallback(async (nickname: string) => {
+    setUser(await api.updateProfile(nickname))
+  }, [])
+
   const logout = useCallback(async () => {
     const refresh = tokenStore.getRefresh()
     if (refresh) {
@@ -71,8 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isAuthenticated: user !== null, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({
+      user,
+      isAuthenticated: user !== null,
+      loading,
+      login,
+      register,
+      updateProfile,
+      logout,
+    }),
+    [user, loading, login, register, updateProfile, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
