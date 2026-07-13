@@ -14,9 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ApiError, api, type EmergencyFund } from "@/lib/api"
 import { formatMoney, formatDateHeader, todayISO } from "@/lib/format"
-
-const MAX_AMOUNT = 9_999_999
-const withinCap = (v: string) => v === "" || Number(v) <= MAX_AMOUNT
+import { MAX_AMOUNT, withinCap } from "@/lib/money"
 
 function AddContributionDialog({
   open,

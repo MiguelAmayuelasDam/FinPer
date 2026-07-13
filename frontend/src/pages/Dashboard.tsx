@@ -10,17 +10,8 @@ import {
   type SeriesPoint,
   type Transaction,
 } from "@/lib/api"
-import { amountClass, formatMoney, signedAmount } from "@/lib/format"
+import { amountClass, daysElapsed, formatMoney, signedAmount } from "@/lib/format"
 import { cn } from "@/lib/utils"
-
-function daysElapsed(from: string, to: string): number {
-  const f = new Date(`${from}T00:00:00`)
-  const t = new Date(`${to}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const end = today < t ? today : t
-  return Math.max(1, Math.floor((end.getTime() - f.getTime()) / 86_400_000) + 1)
-}
 
 // Donut del mes: el aro es tu INGRESO; el rojo es lo GASTADO y el verde lo que
 // te queda (neto). En el centro, el neto. Si gastas más de lo que ingresas, el

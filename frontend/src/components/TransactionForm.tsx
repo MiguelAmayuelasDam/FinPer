@@ -11,10 +11,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import type { Category, Transaction, TransactionInput, TransactionType } from "@/lib/api"
+import { MAX_AMOUNT, withinCap } from "@/lib/money"
 
 const NO_CATEGORY = "none"
-// Tope máximo del importe (evita teclear valores absurdos); alineado con el backend.
-const MAX_AMOUNT = 9_999_999
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -81,10 +80,7 @@ export function TransactionForm({
           min="0"
           max={MAX_AMOUNT}
           value={amount}
-          onChange={(e) => {
-            const v = e.target.value
-            if (v === "" || Number(v) <= MAX_AMOUNT) setAmount(v)
-          }}
+          onChange={(e) => withinCap(e.target.value) && setAmount(e.target.value)}
           required
         />
       </div>

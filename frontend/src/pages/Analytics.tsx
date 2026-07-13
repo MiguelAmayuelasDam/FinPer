@@ -22,27 +22,14 @@ import {
   type Granularity,
   type SeriesPoint,
 } from "@/lib/api"
-import { BUCKET_META, formatMoney } from "@/lib/format"
+import { BUCKET_META, daysElapsed, formatMoney } from "@/lib/format"
+import { MAX_AMOUNT, withinCap } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 const STATUS_BAR: Record<BucketStat["status"], string> = {
   ok: "bg-green-500",
   warning: "bg-amber-500",
   over: "bg-red-500",
-}
-
-// Tope máximo de cualquier importe editable (importe, ingreso, previsto).
-const MAX_AMOUNT = 9_999_999
-// Acepta el valor solo si no supera el tope (evita teclear importes absurdos).
-const withinCap = (v: string) => v === "" || Number(v) <= MAX_AMOUNT
-
-function daysElapsed(from: string, to: string): number {
-  const f = new Date(`${from}T00:00:00`)
-  const t = new Date(`${to}T00:00:00`)
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const end = today < t ? today : t
-  return Math.max(1, Math.floor((end.getTime() - f.getTime()) / 86_400_000) + 1)
 }
 
 type Pcts = { living_pct: number; monthly_pct: number; investment_pct: number }

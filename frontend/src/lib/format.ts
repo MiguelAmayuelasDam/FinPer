@@ -14,6 +14,17 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+// Días transcurridos del periodo [from, to] hasta hoy (mínimo 1). Sirve para
+// medias por día y proyecciones (no cuenta días futuros del periodo).
+export function daysElapsed(from: string, to: string): number {
+  const f = new Date(`${from}T00:00:00`)
+  const t = new Date(`${to}T00:00:00`)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = today < t ? today : t
+  return Math.max(1, Math.floor((end.getTime() - f.getTime()) / 86_400_000) + 1)
+}
+
 const moneyFmt = new Intl.NumberFormat("es-ES", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
