@@ -26,11 +26,12 @@
   --input: #e1dbcf;
   --ring: #7c2d3a;
 
-  /* Colores semánticos del dinero (nunca decorativos). */
-  --income: #146a3c;
-  --expense: #b23a3f;
-  --invest: #2b4c8c;
-  --bucket-amber: #8a6300;
+  /* Colores semánticos del dinero (nunca decorativos). Modo claro: tonos medios,
+     más luminosos que los originales pero con buen contraste sobre el marfil. */
+  --income: #1b9a56; /* verde ingresos */
+  --expense: #d5484d; /* rojo gastos */
+  --invest: #3e63dd; /* azul inversión */
+  --bucket-amber: #e0960f; /* ámbar/dorado del cubo "Mes" */
 }
 
 .dark {
