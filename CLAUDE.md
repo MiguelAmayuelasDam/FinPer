@@ -43,7 +43,7 @@ abandonando por pereza o aburrimiento.
 | Testing         | pytest (backend) · Vitest (frontend) · Playwright (E2E)|
 | Contenerización | Docker + Docker Compose                                 |
 | CI/CD           | GitHub Actions                                          |
-| Despliegue      | Vercel (frontend) · Render (backend + PostgreSQL)      |
+| Despliegue      | Vercel (frontend) · Render (backend, Docker) · Neon (PostgreSQL) |
 
 Justificación detallada en `docs/decisions/0001-stack-tecnologico.md`.
 
@@ -103,8 +103,9 @@ Numario/
 
 ## 5. Plan de trabajo por fases
 
-El proyecto se ejecuta en 7 fases secuenciales. **Estado actual: Fase 6
-completada; siguiente, Fase 7.**
+El proyecto se ejecuta en 7 fases secuenciales. **Estado actual: Fase 7 en curso**
+(bloque A — preparación del código — completado; pendiente desplegar y la
+documentación de defensa).
 
 ### Fase 0 — Análisis y diseño ✅
 Personas, user stories con MoSCoW, requisitos, modelo ER, contrato de API y ADR
@@ -166,11 +167,68 @@ pip-audit, npm audit — 0 hallazgos), revisión del OWASP Top 10 documentada
 límite de subida CSV).
 - **Hito:** código limpio, CI con gates de calidad y seguridad. ✅
 
-### Fase 7 — Despliegue y documentación de defensa
-Deploy en Vercel (front) y Render (back + DB) con secretos bien gestionados.
-README completo, ADR, ensayo de la demo (precargar el backend para evitar el
-arranque frío de Render).
-- **Hito:** proyecto en producción + material de defensa listo.
+### Fase 7 — Despliegue y documentación de defensa 🔄
+
+**Requisito que manda:** la app debe estar **desplegada de forma continua** (el
+profesor corrige en una fecha no acordada; previsión **23-24 ago 2026**) y debe
+poder **seguir recibiendo ampliaciones** después de la entrega.
+
+#### Arquitectura de despliegue (decidida verificando los límites reales)
+
+| Pieza | Dónde | Por qué |
+| ----- | ----- | ------- |
+| Frontend | **Vercel** | Gratis, siempre activo, auto-deploy desde `main` |
+| Backend | **Render** — Docker, **plan de pago** | No se duerme → sin arranque en frío |
+| Base de datos | **Neon** (Postgres) | Free **permanente**: no caduca |
+
+> ⚠️ **NO usar la Postgres gratuita de Render**: **caduca a los 30 días** (+14 de
+> gracia) y después **se borra con todos los datos** → incompatible con "siempre
+> desplegado". Creada hoy, moriría *antes* de la corrección.
+>
+> ⚠️ El plan **web free** de Render se duerme a los 15 min (~1 min de arranque en
+> frío). Se descarta por eso; alternativa gratis post-entrega: bajar a free +
+> pinger externo cada ~10 min contra `/ping` (750 h/mes cubren 24/7).
+
+#### Bloque A — Preparar el código ✅
+- Entrypoint: puerto desde **`$PORT`** (lo inyecta Render), con caída a 8000 en local.
+- **`GET /ping`**: liveness **sin BD** → es el *Health Check Path* de Render.
+  Sondear `/health` (hace `SELECT 1`) mantendría a **Neon despierta 24/7** y
+  agotaría sus **100 h de cómputo/mes**.
+- **Guarda**: la app no arranca si `ENVIRONMENT=production` con el JWT de dev.
+- **`frontend/vercel.json`**: rewrites SPA (sin ellos, refrescar `/movimientos` → 404).
+- `.env.example`: variables exactas de producción.
+
+#### Bloque B — Desplegar (las cuentas y los secretos los pone el autor)
+1. **Neon**: crear proyecto y copiar la cadena. Viene como `postgresql://` → usar
+   **`postgresql+psycopg://…?sslmode=require`**.
+2. **Render**: Web Service · Docker · **Root Directory `backend`** · plan de pago.
+   Variables: `DATABASE_URL`, `JWT_SECRET_KEY` (nuevo y aleatorio),
+   `ENVIRONMENT=production`, `RATE_LIMIT_LOGIN=5/minute`, `CORS_ORIGINS`.
+   **Health Check Path: `/ping`**. Las migraciones se aplican solas (el entrypoint
+   ejecuta `alembic upgrade head` al arrancar).
+3. **Vercel**: importar repo · **Root Directory `frontend`** ·
+   `VITE_API_URL` = URL de Render (se usa **al compilar**).
+4. **Cerrar el círculo**: `CORS_ORIGINS` ← URL de Vercel.
+5. **Verificar en producción**: registro → login → movimiento → análisis → colchón.
+
+#### Bloque C — Ensayo de la demo
+- Sembrar datos: portar `backend/scripts/seed_demo.py` (hoy en la rama `demo`).
+- Con Render de pago no hay arranque en frío; Neon despierta en <1 s.
+
+#### Bloque D — Documentación de defensa
+- **README completo**: qué es, arquitectura, **URLs de producción**, cómo
+  levantarlo, capturas. (Incluir el cambio pendiente `CSV/XLS` → `CSV`.)
+- **ADR `0002-despliegue.md`**: por qué Vercel + Render de pago + Neon, y **por
+  qué NO la Postgres free de Render**; coste y plan post-entrega.
+- Glosario + comandos (tarea permanente §8).
+
+#### CI/CD para las ampliaciones
+`main` queda conectada a Vercel y Render → **rama → PR → CI verde → merge a
+`main` → se despliega solo y migra la BD sola**. Cuidado con migraciones
+destructivas: se aplican automáticamente sobre la BD de producción.
+
+- **Hito:** proyecto en producción (accesible de forma continua) + material de
+  defensa listo.
 
 ---
 
