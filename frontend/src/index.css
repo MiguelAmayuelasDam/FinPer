@@ -2,61 +2,63 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ── Dirección "Editorial": marfil + grafito, acento burdeos con cuentagotas,
-   esquinas rectas y tipografía Archivo (grotesque) con cifras marcadas. ── */
+/* ── Identidad de Numario: tipografía Archivo (grotesque, cifras marcadas) con
+   la paleta "Boutique": blanco cálido + tinta y acento azul tinta con
+   cuentagotas. Esquinas rectas. ── */
 :root {
   --radius: 0.35rem;
 
-  --background: #f4f1ea; /* marfil */
-  --foreground: #1c1a17; /* grafito */
-  --card: #fcfbf7;
-  --card-foreground: #1c1a17;
-  --popover: #fcfbf7;
-  --popover-foreground: #1c1a17;
-  --primary: #7c2d3a; /* burdeos */
-  --primary-foreground: #fbf7f2;
-  --secondary: #ece6db;
-  --secondary-foreground: #2a2620;
-  --muted: #ece6db;
-  --muted-foreground: #6b6459;
-  --accent: #ede7dc;
-  --accent-foreground: #1c1a17;
-  --destructive: #b23a3f;
-  --border: #e1dbcf;
-  --input: #e1dbcf;
-  --ring: #7c2d3a;
+  --background: #fcfbf9; /* blanco cálido */
+  --foreground: #1a1a17; /* tinta */
+  --card: #ffffff;
+  --card-foreground: #1a1a17;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a17;
+  --primary: #26407e; /* azul tinta */
+  --primary-foreground: #fcfbf9;
+  --secondary: #eeece6;
+  --secondary-foreground: #26251f;
+  --muted: #eeece6;
+  --muted-foreground: #6e6a62;
+  --accent: #efece5;
+  --accent-foreground: #1a1a17;
+  --destructive: #cf4a44;
+  --border: #e8e5de;
+  --input: #e8e5de;
+  --ring: #26407e;
 
-  /* Colores semánticos del dinero (nunca decorativos). Modo claro: tonos medios,
-     más luminosos que los originales pero con buen contraste sobre el marfil. */
-  --income: #1b9a56; /* verde ingresos */
-  --expense: #d5484d; /* rojo gastos */
-  --invest: #3e63dd; /* azul inversión */
-  --bucket-amber: #e0960f; /* ámbar/dorado del cubo "Mes" */
+  /* Colores semánticos del dinero (nunca decorativos). */
+  --income: #1a8a50; /* verde ingresos */
+  --expense: #cf4a44; /* rojo gastos */
+  --invest: #2f6fae; /* azul inversión */
+  --bucket-amber: #d6900f; /* ámbar/dorado del cubo "Mes" */
 }
 
 .dark {
-  --background: #16130e;
-  --foreground: #ece6da;
-  --card: #201c15;
-  --card-foreground: #ece6da;
-  --popover: #201c15;
-  --popover-foreground: #ece6da;
-  --primary: #ce818a; /* burdeos aclarado para fondo oscuro */
-  --primary-foreground: #16130e;
-  --secondary: #2a251c;
-  --secondary-foreground: #ece6da;
-  --muted: #2a251c;
-  --muted-foreground: #a79e8d;
-  --accent: #2a251c;
-  --accent-foreground: #ece6da;
-  --destructive: #e0656a;
-  --border: #322c22;
-  --input: #3a3327;
-  --ring: #ce818a;
+  /* Fondo elegido: #1e1e26. Las superficies suben en consecuencia para que las
+     tarjetas sigan destacando sobre el fondo (jerarquía de elevación). */
+  --background: #1e1e26;
+  --foreground: #ece9e3;
+  --card: #262630;
+  --card-foreground: #ece9e3;
+  --popover: #262630;
+  --popover-foreground: #ece9e3;
+  --primary: #8ea6e8; /* azul tinta aclarado para fondo oscuro */
+  --primary-foreground: #1e1e26;
+  --secondary: #2f2f3a;
+  --secondary-foreground: #ece9e3;
+  --muted: #2f2f3a;
+  --muted-foreground: #a3a1ac;
+  --accent: #2f2f3a;
+  --accent-foreground: #ece9e3;
+  --destructive: #e0706a;
+  --border: #3a3a46;
+  --input: #42424f;
+  --ring: #8ea6e8;
 
   --income: #4fb87e;
-  --expense: #e0656a;
-  --invest: #86a6ff;
+  --expense: #e0706a;
+  --invest: #7aa6e6;
   --bucket-amber: #d9a648;
 }
 
