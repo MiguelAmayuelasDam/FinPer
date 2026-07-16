@@ -78,13 +78,20 @@ Justificación detallada en `docs/decisions/0001-stack-tecnologico.md`.
 
 ```
 Numario/
-├── frontend/            # React + TypeScript (se inicializa en Fase 1)
-├── backend/             # FastAPI + lógica de negocio (se inicializa en Fase 1)
+├── frontend/            # React + TS + Vite + Tailwind v4 + shadcn/ui
+│   ├── src/             # components · pages · context · lib
+│   └── e2e/             # Suite E2E (Playwright, 7 specs)
+├── backend/             # FastAPI (dependencias con uv)
+│   ├── app/             # api · core · db · models · schemas · services
+│   ├── alembic/         # Migraciones (hasta 0011)
+│   └── tests/           # pytest
 ├── docs/
 │   ├── analysis/        # Personas, user stories (MoSCoW), requisitos
 │   ├── architecture/    # Modelo ER, contrato API
-│   └── decisions/       # ADR (decisiones de arquitectura)
-├── .github/workflows/   # Pipelines de CI/CD
+│   ├── decisions/       # ADR (decisiones de arquitectura)
+│   └── security/        # OWASP: autenticación + Top 10
+├── .github/workflows/   # CI: backend · frontend · e2e · security
+├── compose.yaml         # Docker Compose: frontend + backend + postgres
 ├── .env.example         # Plantilla de variables de entorno (sin secretos)
 ├── .gitignore
 ├── LICENSE
@@ -203,6 +210,13 @@ Estas reglas deben respetarse siempre al escribir código:
    innecesarias en la v1.
 6. **PDF fuera de la v1** (alta complejidad); CSV y XLS sí.
 7. Claves primarias `uuid` para evitar enumeración de recursos.
+8. **Colores por tokens semánticos, nunca hex sueltos.** La identidad vive en
+   `frontend/src/index.css`: tokens de tema (shadcn) + los del dinero
+   (`--income`, `--expense`, `--invest`, `--bucket-amber`), usables como
+   utilidades (`text-income`, `bg-income`…), en claro y oscuro. **Verde y rojo
+   están reservados a su significado** (ingreso/gasto), por eso el acento de
+   marca es **azul tinta**. Tipografía **Archivo** autohospedada (`@fontsource`)
+   y **`tabular-nums`** en los importes. Cambiar un color = una línea.
 
 ---
 
@@ -238,3 +252,28 @@ Estas reglas deben respetarse siempre al escribir código:
 - `docs/decisions/0001-stack-tecnologico.md` — ADR del stack
 - `docs/security/01-owasp-autenticacion.md` — controles de seguridad de auth
 - `docs/security/02-owasp-top-10.md` — mapeo OWASP Top 10 (mitigaciones + huecos)
+
+---
+
+## 10. Entorno de desarrollo (cosas que saber)
+
+Aprendido a base de tropezar; léelo antes de ejecutar nada.
+
+- El fichero de Compose es **`compose.yaml`** (no `docker-compose.yml`).
+- **Backend:** el `.venv` del host apunta al intérprete del contenedor (symlink
+  roto fuera de Docker). Los tests y herramientas se corren **dentro**:
+  `docker compose exec backend uv run --no-sync pytest` (ver `docs/comandos.md`).
+- **Frontend:** valida con **`npm ci`**, no `npm install`. El CI instala desde el
+  lockfile y un `node_modules` desincronizado **oculta errores de lint que sí
+  fallan en CI**.
+- Al **añadir una dependencia del frontend**, instálala también en el contenedor
+  (`node_modules` es un volumen anónimo):
+  `docker exec numario-frontend-1 npm i <pkg>` y reinicia el contenedor.
+- **`RATE_LIMIT_LOGIN` está relajado a 1000/min en `compose.yaml`** (dev/E2E: la
+  suite hace ~6 logins en paralelo y el límite real de 5/min la tumbaba). El rate
+  limiting **sí** se verifica en `tests/test_rate_limit.py` (fija su propio
+  umbral) y en producción se define por entorno.
+- **Rama `demo`** (solo local, no está en el remoto): contiene un **script de
+  seed** (`backend/scripts/seed_demo.py`) y la **configuración para Cloudflare
+  Tunnel** (API relativa + `allowedHosts`), reutilizables para el ensayo de demo
+  de la Fase 7.
