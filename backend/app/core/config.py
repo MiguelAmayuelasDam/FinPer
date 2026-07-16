@@ -9,7 +9,9 @@ from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Default de desarrollo: si aparece en producción es que falta la variable real.
-DEV_JWT_SECRET = "dev-only-secret-cambiar-en-produccion-000000"
+# No es un secreto real, sino el valor-señuelo que la guarda de abajo rechaza en
+# producción; por eso vive en el repo a propósito.
+DEV_JWT_SECRET = "dev-only-secret-cambiar-en-produccion-000000"  # nosec B105
 
 
 class Settings(BaseSettings):
