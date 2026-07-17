@@ -158,4 +158,89 @@ describe("Analytics", () => {
       expect(calls.some((u) => u.includes("granularity=year"))).toBe(true)
     })
   })
+
+  describe("sin ingreso configurado (usuario nuevo)", () => {
+    // Ya ha metido gastos pero nunca ha dicho cuánto ingresa: no hay
+    // presupuesto contra el que comparar.
+    const SIN_INGRESO = {
+      ...OVERVIEW,
+      income_base: "0.00",
+      summary: { income: "2400.00", expense: "2000.00", net: "400.00" },
+      buckets: [
+        { bucket: "living", label: "Vida", budget: "0.00", spent: "2000.00", pct: 0, status: "unset" },
+        { bucket: "monthly", label: "Mes", budget: "0.00", spent: "0.00", pct: 0, status: "unset" },
+        { bucket: "investment", label: "Inversión", budget: "0.00", spent: "0.00", pct: 0, status: "unset" },
+      ],
+    }
+
+    function installSinIngreso() {
+      const fetchMock = vi.fn(async (url: string) => {
+        if (url.includes("/analytics/overview")) return json(200, SIN_INGRESO)
+        if (url.includes("/analytics/series")) return json(200, SERIES)
+        if (url.includes("/budget/income")) return json(204, null)
+        if (url.includes("/budget"))
+          return json(200, { monthly_income: "0.00", living_pct: 50, monthly_pct: 30, investment_pct: 20 })
+        return json(404, {})
+      })
+      vi.stubGlobal("fetch", fetchMock)
+      return fetchMock
+    }
+
+    it("avisa de que no hay con qué comparar y ofrece configurarlo", async () => {
+      installSinIngreso()
+      renderPage()
+
+      expect(await screen.findByTestId("no-income")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Configurar ingreso" })).toBeInTheDocument()
+    })
+
+    it("no dice '0,00 € / 0,00 €', que se leería como que no has gastado", async () => {
+      installSinIngreso()
+      renderPage()
+      await screen.findByTestId("no-income")
+
+      // Lo gastado sí lo sabemos; el límite es lo que falta. Uno por cubo.
+      expect(screen.getAllByText(/sin límite fijado/)).toHaveLength(3)
+      expect(screen.queryByText("0,00 € / 0,00 €")).not.toBeInTheDocument()
+    })
+
+    it("propone el ingreso detectado en el periodo, ya escrito", async () => {
+      installSinIngreso()
+      const user = userEvent.setup()
+      renderPage()
+      await screen.findByTestId("no-income")
+
+      await user.click(screen.getByRole("button", { name: "Configurar ingreso" }))
+
+      // 2400 = lo ingresado según los movimientos, no el 0 configurado.
+      const campo = await screen.findByLabelText(/Ingreso de julio 2026/)
+      expect(campo).toHaveValue(2400)
+      expect(screen.getByText(/Te proponemos lo que has ingresado/)).toBeInTheDocument()
+    })
+
+    it("marca 'ingreso habitual' por defecto, para que arregle todos los meses", async () => {
+      installSinIngreso()
+      const user = userEvent.setup()
+      renderPage()
+      await screen.findByTestId("no-income")
+
+      await user.click(screen.getByRole("button", { name: "Configurar ingreso" }))
+
+      // Sin esto, un solo Guardar arreglaría julio y en agosto volvería a ver
+      // las barras vacías.
+      expect(await screen.findByLabelText(/ingreso habitual/i)).toBeChecked()
+    })
+
+    it("no toca la casilla del habitual a quien ya tiene ingreso configurado", async () => {
+      installFetch() // OVERVIEW normal: income_base 1000
+      const user = userEvent.setup()
+      renderPage()
+      await screen.findByTestId("income")
+
+      await user.click(screen.getByRole("button", { name: "Ajustar presupuesto" }))
+
+      expect(await screen.findByLabelText(/ingreso habitual/i)).not.toBeChecked()
+      expect(screen.queryByText(/Te proponemos lo que has ingresado/)).not.toBeInTheDocument()
+    })
+  })
 })

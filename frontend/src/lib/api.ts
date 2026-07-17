@@ -115,7 +115,9 @@ export interface BudgetUpdate {
   monthly_income?: string
 }
 
-export type BucketStatus = "ok" | "warning" | "over"
+// `unset` = sin ingreso configurado: no hay presupuesto contra el que comparar,
+// así que el semáforo no opina. No es lo mismo que "ok".
+export type BucketStatus = "unset" | "ok" | "warning" | "over"
 
 export interface BucketStat {
   bucket: Bucket

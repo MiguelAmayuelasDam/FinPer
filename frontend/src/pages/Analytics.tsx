@@ -37,6 +37,9 @@ import { MAX_AMOUNT, withinCap } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
 const STATUS_BAR: Record<BucketStat["status"], string> = {
+  // Sin ingreso configurado la barra ni siquiera se pinta (ancho 0); el color da
+  // igual, pero el tipo obliga a declararlo y así queda explícito.
+  unset: "bg-muted",
   ok: "bg-income",
   warning: "bg-bucket-amber",
   over: "bg-expense",
@@ -53,6 +56,7 @@ function BudgetDialog({
   month,
   periodLabel,
   incomeBase,
+  suggested,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -62,6 +66,9 @@ function BudgetDialog({
   month: number
   periodLabel: string
   incomeBase: string
+  /** El ingreso que llega es una propuesta deducida de los movimientos, no algo
+   *  que el usuario haya configurado: hay que decírselo. */
+  suggested: boolean
 }) {
   const [pcts, setPcts] = useState<Pcts>({ living_pct: 50, monthly_pct: 30, investment_pct: 20 })
   const [income, setIncome] = useState("")
@@ -75,7 +82,11 @@ function BudgetDialog({
   useEffect(() => {
     if (!open) return
     setError(null)
-    setSetAsDefault(false)
+    // Si no tenía ingreso configurado, marcarlo por defecto: así un solo Guardar
+    // deja listos **todos** los meses (el habitual es el que rellena los huecos)
+    // y no solo este. Sin esto, el usuario arregla julio y vuelve a encontrarse
+    // las barras vacías en agosto. Quien ya lo tiene puesto decide él.
+    setSetAsDefault(suggested)
     setIncome(incomeBase)
     setLoaded(false)
     api.budget
@@ -88,7 +99,7 @@ function BudgetDialog({
         })
       })
       .finally(() => setLoaded(true))
-  }, [open, incomeBase])
+  }, [open, incomeBase, suggested])
 
   if (!open || !loaded) return null
 
@@ -146,6 +157,12 @@ function BudgetDialog({
           {isMonth ? (
             <div className="space-y-1">
               <Label htmlFor="income">Ingreso de {periodLabel} (€)</Label>
+              {suggested ? (
+                <p className="text-xs text-muted-foreground">
+                  Te proponemos lo que has ingresado este periodo. Cámbialo si tu ingreso
+                  habitual es otro.
+                </p>
+              ) : null}
               <Input
                 id="income"
                 type="number"
@@ -286,6 +303,16 @@ export default function Analytics() {
   const allocLabel = budget
     ? `${budget.living_pct}-${budget.monthly_pct}-${budget.investment_pct}`
     : "50-30-20"
+
+  // Sin ingreso configurado no hay presupuesto y el semáforo no puede opinar.
+  const noIncome = Number(overview?.income_base ?? 0) <= 0
+
+  // Qué proponer en el diálogo. Si ya hay un ingreso configurado, ese. Si no, el
+  // que se deduce de los movimientos del periodo: se lo enseñamos ya escrito
+  // para que solo tenga que confirmarlo, pero **decide él**. Ponerlo por su
+  // cuenta convertiría el plan en un reflejo de lo ya gastado, y entonces el
+  // semáforo nunca podría decirle que se está pasando.
+  const suggestedIncome = noIncome ? (overview?.summary.income ?? "0") : (overview?.income_base ?? "0")
 
   return (
     <main className="mx-auto max-w-4xl p-4 sm:p-8" style={{ zoom: 1.1 }}>
@@ -429,6 +456,19 @@ export default function Analytics() {
                 Ajustar presupuesto
               </Button>
             </div>
+            {noIncome ? (
+              <div
+                className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-dashed p-3"
+                data-testid="no-income"
+              >
+                <p className="text-sm text-muted-foreground">
+                  Sin tu ingreso de {overview.period_label} no hay con qué comparar tus gastos.
+                </p>
+                <Button size="sm" onClick={() => setBudgetOpen(true)}>
+                  Configurar ingreso
+                </Button>
+              </div>
+            ) : null}
             <div className="space-y-3">
               {overview.buckets.map((b) => (
                 <div key={b.bucket}>
@@ -437,9 +477,17 @@ export default function Analytics() {
                       <span className={cn("size-2 rounded-full", BUCKET_META[b.bucket].dot)} />
                       {b.label}
                     </span>
-                    <span className="text-muted-foreground">
-                      {formatMoney(b.spent)} / {formatMoney(b.budget)}
-                    </span>
+                    {b.status === "unset" ? (
+                      // No decimos "0,00 € / 0,00 €", que se lee como "no has
+                      // gastado nada": lo gastado sí lo sabemos, el límite no.
+                      <span className="text-muted-foreground">
+                        {formatMoney(b.spent)} <span className="opacity-70">· sin límite fijado</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {formatMoney(b.spent)} / {formatMoney(b.budget)}
+                      </span>
+                    )}
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted">
                     <div
@@ -566,7 +614,8 @@ export default function Analytics() {
         year={sel.year}
         month={sel.month}
         periodLabel={overview?.period_label ?? ""}
-        incomeBase={overview?.income_base ?? "0"}
+        incomeBase={suggestedIncome}
+        suggested={noIncome}
       />
     </main>
   )

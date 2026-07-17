@@ -225,7 +225,10 @@ function bucketMessage(b: BucketStat): { title: string; text: string; tone: Tone
   }
   const key = b.bucket === "living" ? "living" : "monthly"
   const title = key === "living" ? "Gastos de vida" : "Gastos del mes"
-  if (Number(b.budget) === 0) {
+  // Se preguntaba por `budget === 0`, deduciendo el estado del importe. Ahora el
+  // backend lo dice, y de paso TypeScript estrecha el status a los tres que sí
+  // tienen batería de mensajes.
+  if (b.status === "unset") {
     return { title, tone: "info", text: MESSAGES[key].unset }
   }
   const tone: Tone = b.status === "ok" ? "good" : b.status === "warning" ? "warn" : "bad"
