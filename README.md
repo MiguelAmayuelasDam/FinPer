@@ -147,7 +147,7 @@ Numario/
 │   │   └── services/         # lógica de negocio
 │   ├── alembic/versions/     # 11 migraciones
 │   ├── scripts/              # seed del usuario de demostración
-│   ├── tests/                # 128 tests (pytest)
+│   ├── tests/                # 130 tests (pytest)
 │   └── Dockerfile
 ├── frontend/                 # Aplicación web (React)
 │   ├── src/
@@ -231,7 +231,9 @@ tres acciones:
 
 **Categorías**
 79 categorías semilla ya mapeadas a los cubos del 50-30-20, más las que quieras
-crear. Cada una con su emoji, para reconocerla de un vistazo.
+crear. Cada una con su emoji, para reconocerla de un vistazo. En los desplegables
+aparecen **agrupadas por cubo** (Vida, Mes, Inversión…), para que al elegir una
+veas de un vistazo dónde va a caer el gasto.
 
 **Importación de extractos CSV**
 Subes el CSV del banco (formato imagin/CaixaBank) y ves una **vista previa antes
@@ -274,6 +276,13 @@ La pantalla de inicio responde a *"¿cómo voy este mes?"*: ingresos contra gast
 neto del mes, últimos movimientos, ritmo de gasto y evolución de los últimos 6
 meses. La de análisis va al detalle: reparto 50-30-20, gasto por categoría,
 previsto contra gastado, y navegación por **meses o años**.
+
+**Ayuda donde nace la duda**
+¿No sabes qué es la regla 50-30-20 o un colchón de emergencia? Un **`?`** junto a
+cada concepto abre una explicación breve sin sacarte de donde estás — nada de
+tutoriales de bienvenida que nadie lee. Y las pantallas vacías enseñan: un
+colchón sin definir explica para qué sirve en vez de mostrar un `0 € de 0 €`
+mudo.
 
 **Tema claro y oscuro**
 Con conmutador, memoria de tu elección y respeto por la preferencia de tu
