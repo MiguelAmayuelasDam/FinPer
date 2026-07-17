@@ -27,11 +27,36 @@
   --input: #e8e5de;
   --ring: #26407e;
 
-  /* Colores semánticos del dinero (nunca decorativos). */
-  --income: #1a8a50; /* verde ingresos */
-  --expense: #cf4a44; /* rojo gastos */
-  --invest: #2f6fae; /* azul inversión */
-  --bucket-amber: #d6900f; /* ámbar/dorado del cubo "Mes" */
+  /* ── Tres sistemas de color con tres trabajos distintos ─────────────────
+     Se separan a propósito: antes el verde significaba a la vez "ingreso",
+     "cubo Vida" y "vas bien", y en Análisis el punto de Vida salía del mismo
+     color que su barra de estado. Identidad y estado no pueden pintarse igual.
+
+     1) TIPO DE MOVIMIENTO — el importe en la lista.
+     2) ESTADO DEL SEMÁFORO — reservados: nunca se usan para identificar nada.
+     3) IDENTIDAD DE CUBO — categóricos: solo dicen "cuál", nunca "qué tal".
+     Los del grupo 3 se eligieron con el validador de contraste/daltonismo,
+     no a ojo: peor par ΔE 21,2 (protan) frente al ΔE 0,7 que había. */
+
+  /* 1 y 2 · dinero y estado (nunca decorativos) */
+  --income: #1a8a50; /* verde: ingreso · estado "vas bien" */
+  --expense: #cf4a44; /* rojo: gasto · estado "te has pasado" */
+  --bucket-amber: #d6900f; /* ámbar: estado "ojo" */
+
+  /* 3 · identidad de los cubos. Evitan verde/ámbar/rojo a propósito: esos son
+     del semáforo, y un punto de identidad no debe parecer un veredicto. Se
+     evita también el rosa: aunque mide lejos del rojo (ΔE 29), junto a una
+     barra roja se lee como "familia del rojo" y confunde igual. */
+  --bucket-living: #6d28d9; /* violeta: Vida */
+  --bucket-monthly: #0891b2; /* cian: Mes */
+  --invest: #2f6fae; /* azul: Inversión */
+  --bucket-income: #548511; /* pistacho: Ingresos. Es el **más claro que aún es
+                               seguro**: a partir de aquí se va contra el ámbar
+                               del semáforo bajo protanopía (#5a8f12 → ΔE 8,5;
+                               #65a30d → ΔE 0,8, el mismo color). Aquí: 13,2
+                               contra el ámbar y 27,5 contra el verde "ok". */
+  --bucket-transfer: #8a867e; /* gris cálido: No computable (gris a propósito:
+                                 significa "esto no cuenta") */
 }
 
 .dark {
@@ -58,8 +83,21 @@
 
   --income: #4fb87e;
   --expense: #e0706a;
-  --invest: #7aa6e6;
   --bucket-amber: #d9a648;
+
+  /* Identidad de cubo en oscuro. Los tonos van dentro de la banda de
+     luminosidad OKLCH 0.48–0.67 que pide un fondo oscuro: los de antes estaban
+     en 0.70–0.75 —demasiado claros y con poco croma— y por eso se camuflaban
+     con el fondo y entre ellos (--primary #8ea6e8 e --invest #7aa6e6 estaban a
+     ΔE 0,7 bajo protanopía: el mismo color).
+
+     Ingresos aquí sí puede ser el pistacho claro: el ámbar de este modo
+     (#d9a648) está menos saturado y se separa (ΔE 12,4). En claro no cabía. */
+  --bucket-living: #8b5cf6;
+  --bucket-monthly: #0e9dbf;
+  --invest: #2f6fae;
+  --bucket-income: #65a30d;
+  --bucket-transfer: #94919c;
 }
 
 @theme inline {
@@ -96,6 +134,10 @@
   --color-expense: var(--expense);
   --color-invest: var(--invest);
   --color-bucket-amber: var(--bucket-amber);
+  --color-bucket-living: var(--bucket-living);
+  --color-bucket-monthly: var(--bucket-monthly);
+  --color-bucket-income: var(--bucket-income);
+  --color-bucket-transfer: var(--bucket-transfer);
 }
 
 @layer base {

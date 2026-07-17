@@ -590,7 +590,7 @@ export default function Analytics() {
                         <div
                           className={cn(
                             "h-full rounded-full",
-                            c.bucket ? BUCKET_META[c.bucket].dot : "bg-gray-400",
+                            c.bucket ? BUCKET_META[c.bucket].dot : "bg-bucket-transfer",
                           )}
                           style={{ width: `${(Number(c.spent) / maxCatSpent) * 100}%` }}
                         />

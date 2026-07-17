@@ -269,12 +269,37 @@ Estas reglas deben respetarse siempre al escribir código:
 6. **PDF fuera de la v1** (alta complejidad); CSV y XLS sí.
 7. Claves primarias `uuid` para evitar enumeración de recursos.
 8. **Colores por tokens semánticos, nunca hex sueltos.** La identidad vive en
-   `frontend/src/index.css`: tokens de tema (shadcn) + los del dinero
-   (`--income`, `--expense`, `--invest`, `--bucket-amber`), usables como
-   utilidades (`text-income`, `bg-income`…), en claro y oscuro. **Verde y rojo
-   están reservados a su significado** (ingreso/gasto), por eso el acento de
-   marca es **azul tinta**. Tipografía **Archivo** autohospedada (`@fontsource`)
-   y **`tabular-nums`** en los importes. Cambiar un color = una línea.
+   `frontend/src/index.css`, usable como utilidades (`text-income`, `bg-income`…)
+   en claro y oscuro. Cambiar un color = una línea. Tipografía **Archivo**
+   autohospedada (`@fontsource`) y **`tabular-nums`** en los importes.
+
+   **Tres sistemas de color con tres trabajos, y no se mezclan:**
+   | Sistema | Tokens | Trabajo |
+   | --- | --- | --- |
+   | Tipo de movimiento | `--income` · `--expense` | pinta el importe en la lista |
+   | Estado (semáforo) | `--income` · `--bucket-amber` · `--expense` | **reservados**: dicen *qué tal vas* |
+   | Identidad de cubo | `--bucket-living` · `--bucket-monthly` · `--invest` · `--bucket-income` · `--bucket-transfer` | **categóricos**: dicen *cuál*, nunca *qué tal* |
+
+   **Verde, ámbar y rojo están reservados** al estado y al tipo de movimiento —
+   por eso el acento de marca es **azul tinta** y por eso los cubos van de
+   **violeta (Vida)**, **cian (Mes)**, **azul (Inversión)** y **pistacho
+   (Ingresos)**: si Vida fuera verde, su punto de identidad se leería como el
+   veredicto "vas bien". **El rosa está descartado**: mide lejos del rojo
+   (ΔE 29) pero junto a una barra roja se lee como su familia.
+   `--bucket-transfer` es gris **a propósito**: significa "esto no cuenta".
+
+   ⚠️ **El pistacho de Ingresos está al borde y no se puede aclarar.** Bajo
+   protanopía el pistacho claro y el ámbar del semáforo **son el mismo color**
+   (`#65a30d` vs `#d6900f` → ΔE **0,8**). El valor en claro (`#548511`, ΔE 13,2)
+   es el más claro que aún se separa. Si alguien lo "mejora" subiéndolo, rompe
+   la app para los daltónicos sin que se note en pantalla.
+   Las etiquetas **no llevan porcentaje** ("Vida", no "Vida (50%)"): son
+   configurables desde la Fase 5 y el número mentiría a quien use 60/20/20.
+
+   **Los tonos categóricos no se eligen a ojo.** Salen del validador de la skill
+   `dataviz` (`scripts/validate_palette.js`): banda de luminosidad OKLCH
+   (0.43–0.77 claro · **0.48–0.67 oscuro**), croma ≥ 0.10 y separación bajo
+   daltonismo ΔE ≥ 12. Si tocas uno, **vuelve a pasarlo**.
 
 ---
 
