@@ -18,6 +18,7 @@ from app.models.user import User
 from app.schemas.analytics import (
     AnalyticsOverview,
     BucketStat,
+    BucketStatus,
     CategoryStat,
     SeriesPoint,
     Summary,
@@ -92,8 +93,15 @@ def overview(
     for bucket, blabel in _BUCKETS:
         spent = spent_by_bucket.get(bucket, Decimal(0))
         bucket_budget = quantize_money(income_base * pcts[bucket] / 100)
-        pct = int(spent / bucket_budget * 100) if bucket_budget > 0 else 0
-        status = "over" if pct > 100 else "warning" if pct >= 80 else "ok"
+        # Sin ingreso configurado no hay presupuesto contra el que comparar, así
+        # que el semáforo no puede opinar: `unset`. Antes caía en `ok` y la
+        # aplicación afirmaba que ibas bien sin tener ni idea.
+        if bucket_budget <= 0:
+            pct = 0
+            status: BucketStatus = "unset"
+        else:
+            pct = int(spent / bucket_budget * 100)
+            status = "over" if pct > 100 else "warning" if pct >= 80 else "ok"
         buckets.append(
             BucketStat(
                 bucket=bucket, label=blabel, budget=bucket_budget, spent=spent,

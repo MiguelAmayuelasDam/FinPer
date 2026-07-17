@@ -64,6 +64,52 @@ def test_buckets_budget_and_spent(
     assert buckets["investment"]["spent"] == "0.00"
 
 
+def test_buckets_unset_when_no_income_configured(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    """Sin ingreso configurado el semáforo no puede opinar, y debe decirlo.
+
+    Es el estado de un usuario recién registrado que ya ha metido gastos: antes
+    caía en `ok` y la aplicación afirmaba que iba bien sin nada con lo que
+    comparar.
+    """
+    superm = _cat(client, auth_headers, "Supermercado")
+    _mk(client, auth_headers, "2000.00", "expense", "Compra enorme", superm)
+
+    buckets = {b["bucket"]: b for b in client.get(OVERVIEW, headers=auth_headers).json()["buckets"]}
+    assert buckets["living"]["budget"] == "0.00"
+    assert buckets["living"]["spent"] == "2000.00"
+    assert buckets["living"]["status"] == "unset"  # no "ok": no se sabe
+    assert buckets["living"]["pct"] == 0
+    # Los cubos sin gasto tampoco opinan.
+    assert buckets["monthly"]["status"] == "unset"
+    assert buckets["investment"]["status"] == "unset"
+
+
+def test_buckets_leave_unset_as_soon_as_there_is_income(
+    client: TestClient, auth_headers: dict[str, str], seed_categories: None
+) -> None:
+    """En cuanto hay ingreso configurado, el semáforo vuelve a opinar."""
+    superm = _cat(client, auth_headers, "Supermercado")
+    _mk(client, auth_headers, "600.00", "expense", "Compra", superm)
+
+    client.put(
+        "/api/v1/budget",
+        headers=auth_headers,
+        json={
+            "monthly_income": "1000.00",
+            "living_pct": 50,
+            "monthly_pct": 30,
+            "investment_pct": 20,
+        },
+    )
+
+    buckets = {b["bucket"]: b for b in client.get(OVERVIEW, headers=auth_headers).json()["buckets"]}
+    assert buckets["living"]["budget"] == "500.00"
+    assert buckets["living"]["status"] == "over"  # 600 de 500 → 120%
+    assert buckets["living"]["pct"] == 120
+
+
 def test_by_category_sorted_desc(
     client: TestClient, auth_headers: dict[str, str], seed_categories: None
 ) -> None:

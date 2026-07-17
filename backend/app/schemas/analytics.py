@@ -8,7 +8,9 @@ from pydantic import BaseModel
 
 from app.schemas.common import MoneyStr
 
-BucketStatus = Literal["ok", "warning", "over"]
+# `unset` = no hay ingreso configurado, así que no hay contra qué comparar. Es
+# distinto de `ok`: no es que el usuario vaya bien, es que **no se puede saber**.
+BucketStatus = Literal["unset", "ok", "warning", "over"]
 
 
 class Summary(BaseModel):
