@@ -269,12 +269,27 @@ Estas reglas deben respetarse siempre al escribir código:
 6. **PDF fuera de la v1** (alta complejidad); CSV y XLS sí.
 7. Claves primarias `uuid` para evitar enumeración de recursos.
 8. **Colores por tokens semánticos, nunca hex sueltos.** La identidad vive en
-   `frontend/src/index.css`: tokens de tema (shadcn) + los del dinero
-   (`--income`, `--expense`, `--invest`, `--bucket-amber`), usables como
-   utilidades (`text-income`, `bg-income`…), en claro y oscuro. **Verde y rojo
-   están reservados a su significado** (ingreso/gasto), por eso el acento de
-   marca es **azul tinta**. Tipografía **Archivo** autohospedada (`@fontsource`)
-   y **`tabular-nums`** en los importes. Cambiar un color = una línea.
+   `frontend/src/index.css`, usable como utilidades (`text-income`, `bg-income`…)
+   en claro y oscuro. Cambiar un color = una línea. Tipografía **Archivo**
+   autohospedada (`@fontsource`) y **`tabular-nums`** en los importes.
+
+   **Tres sistemas de color con tres trabajos, y no se mezclan:**
+   | Sistema | Tokens | Trabajo |
+   | --- | --- | --- |
+   | Tipo de movimiento | `--income` · `--expense` | pinta el importe en la lista |
+   | Estado (semáforo) | `--income` · `--bucket-amber` · `--expense` | **reservados**: dicen *qué tal vas* |
+   | Identidad de cubo | `--bucket-living` · `--bucket-monthly` · `--invest` · `--bucket-transfer` | **categóricos**: dicen *cuál*, nunca *qué tal* |
+
+   **Verde, ámbar y rojo están reservados** al estado y al tipo de movimiento —
+   por eso el acento de marca es **azul tinta** y por eso los cubos del 50-30-20
+   van de **violeta (Vida)**, **rosa (Mes)** y **azul (Inversión)**: si Vida
+   fuera verde, su punto de identidad se leería como el veredicto "vas bien".
+   `--bucket-transfer` es gris **a propósito**: significa "esto no cuenta".
+
+   **Los tonos categóricos no se eligen a ojo.** Salen del validador de la skill
+   `dataviz` (`scripts/validate_palette.js`): banda de luminosidad OKLCH
+   (0.43–0.77 claro · **0.48–0.67 oscuro**), croma ≥ 0.10 y separación bajo
+   daltonismo ΔE ≥ 12. Si tocas uno, **vuelve a pasarlo**.
 
 ---
 
