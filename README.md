@@ -10,12 +10,12 @@ Proyecto final del Máster de Desarrollo de Software con IA.
 
 ## Enlaces del proyecto
 
-| | |
-| --- | --- |
-| 🌐 **Aplicación desplegada** | **<https://numario.vercel.app>** |
-| 📊 **Presentación (slides)** | **https://canva.link/uf7wfsu0xsyvvzm** |
-| 🎬 **Vídeo de presentación** | **<!-- VIDEO --> `⚠️ pendiente — pegar URL aquí`** |
-| 💻 **Código fuente** | <https://github.com/MiguelAmayuelasDam/Numario> |
+|                             |                                                                          |
+| --------------------------- | ------------------------------------------------------------------------ |
+| 🌐 **Aplicación desplegada** | **<https://numario.vercel.app>**                                         |
+| 📊 **Presentación (slides)** | **https://canva.link/1fcbuzm7tmhx6od** o `docs/presentacion/Numario.pdf` |
+| 🎬 **Vídeo de presentación** | **https://www.youtube.com/watch?v=GgSUiz5rkso**                          |
+| 💻 **Código fuente**         | **<https://github.com/MiguelAmayuelasDam/Numario>**                          |
 
 > Para entrar en la aplicación, usa las credenciales de prueba del final:
 > [Usuario y contraseña de prueba](#usuario-y-contraseña-de-prueba).
@@ -66,17 +66,17 @@ comercio.
 
 ## Stack tecnológico
 
-| Capa | Tecnología |
-| --- | --- |
-| **Frontend** | React 19 · TypeScript · Vite 6 · Tailwind CSS v4 · shadcn/ui |
-| **Backend** | FastAPI (Python 3.13) · dependencias con `uv` |
-| **Base de datos** | PostgreSQL 16 · SQLAlchemy 2.0 · Alembic |
-| **Autenticación** | JWT (access + refresh rotables) · hash argon2id (`pwdlib`) |
-| **Clasificación** | Motor de reglas propio + aprendizaje (**sin IA externa**) |
-| **Testing** | pytest · Vitest · Playwright |
-| **Contenerización** | Docker · Docker Compose |
-| **CI/CD** | GitHub Actions |
-| **Despliegue** | Vercel (frontend) · Render (backend) · Neon (PostgreSQL) |
+| Capa                | Tecnología                                                   |
+| ------------------- | ------------------------------------------------------------ |
+| **Frontend**        | React 19 · TypeScript · Vite 6 · Tailwind CSS v4 · shadcn/ui |
+| **Backend**         | FastAPI (Python 3.13) · dependencias con `uv`                |
+| **Base de datos**   | PostgreSQL 16 · SQLAlchemy 2.0 · Alembic                     |
+| **Autenticación**   | JWT (access + refresh rotables) · hash argon2id (`pwdlib`)   |
+| **Clasificación**   | Motor de reglas propio + aprendizaje (**sin IA externa**)    |
+| **Testing**         | pytest · Vitest · Playwright                                 |
+| **Contenerización** | Docker · Docker Compose                                      |
+| **CI/CD**           | GitHub Actions                                               |
+| **Despliegue**      | Vercel (frontend) · Render (backend) · Neon (PostgreSQL)     |
 
 **Sobre la clasificación y la IA.** El diseño original contemplaba llamar a un
 modelo (OpenAI/Gemini) para categorizar los movimientos. **Se descartó tras
@@ -107,11 +107,11 @@ docker compose up --build     # levanta postgres + backend + frontend
 
 Y ya está. Cuando termine:
 
-| | |
-| --- | --- |
-| **Aplicación** | http://localhost:5173 |
-| **API (Swagger)** | http://localhost:8000/docs |
-| **Health check** | http://localhost:8000/health → `{"status":"ok","db":"ok"}` |
+|                   |                                                            |
+| ----------------- | ---------------------------------------------------------- |
+| **Aplicación**    | http://localhost:5173                                      |
+| **API (Swagger)** | http://localhost:8000/docs                                 |
+| **Health check**  | http://localhost:8000/health → `{"status":"ok","db":"ok"}` |
 
 Las **migraciones se aplican solas** al arrancar el backend: no hay que ejecutar
 nada a mano ni cargar ningún `.sql`. La base de datos queda lista con sus 79
@@ -261,7 +261,7 @@ tu vida —60/20/20 si la vivienda te aprieta, 40/30/30 si quieres invertir más
 con la única condición de que **sume 100**. Porque una regla que no puedes
 adaptar a tu situación es una regla que acabas ignorando.
 
-Cada cubo tiene su **semáforo** —verde, ámbar, rojo— para que veas que te estás
+Los cubos de **Vida** y **Mes** tienen su **semáforo** —verde, ámbar, rojo— para que veas que te estás
 pasando **cuando aún puedes hacer algo**, no al cerrar el mes. Lo no computable
 (traspasos entre tus cuentas, aportes a inversión) queda fuera del cálculo: no es
 dinero que se va, es dinero que se mueve.
@@ -309,13 +309,13 @@ vivía de alquiler y en 2026 compra piso y le suben el sueldo en abril—.
 Los importes están elegidos a propósito para que **se vean todos los casos** y no
 salga todo en verde:
 
-| Qué mirar | Dónde |
-| --- | --- |
-| Cubo **Vida** en rojo y en ámbar | 02/2026 (avería del coche) · 05/2026 (dentista) |
-| Cubo **Mes** en rojo y en ámbar | 03/2026 (caprichos) · 06/2026 (viaje) |
-| **Ingreso variable** | Subida de sueldo en 04/2026 · pagas extra en junio y diciembre |
-| Movimiento **sin categoría** | "Cargo sin identificar" (20/06/2026) |
-| **Comparación entre años** | 2025 completo frente a 2026 |
+| Qué mirar                        | Dónde                                                          |
+| -------------------------------- | -------------------------------------------------------------- |
+| Cubo **Vida** en rojo y en ámbar | 02/2026 (avería del coche) · 05/2026 (dentista)                |
+| Cubo **Mes** en rojo y en ámbar  | 03/2026 (caprichos) · 06/2026 (viaje)                          |
+| **Ingreso variable**             | Subida de sueldo en 04/2026 · pagas extra en junio y diciembre |
+| Movimiento **sin categoría**     | "Cargo sin identificar" (20/06/2026)                           |
+| **Comparación entre años**       | 2025 completo frente a 2026                                    |
 
 > Si prefieres empezar de cero, puedes registrar tu propio usuario: el registro
 > está abierto. Para regenerar los datos de demostración en un entorno local.
